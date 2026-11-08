@@ -6,7 +6,9 @@ name: Ricerca
 # (lo fa l'app quando si preme "Aggiorna" o si finisce l'intervista).
 on:
   schedule:
-    - cron: "40 4 * * *"   # 06:40 in Italia d'estate, 05:40 d'inverno
+    - cron: "40 4 * * *"   # 05:40 in Italia d'inverno (06:40 d'estate)
+    - cron: "40 10 * * *"  # 11:40: gli annunci pubblicati in mattinata
+    - cron: "40 15 * * *"  # 16:40: quelli del pomeriggio (nel repo pubblico i minuti sono gratuiti senza limite)
   workflow_dispatch:
     inputs:
       utente:
@@ -97,7 +99,7 @@ jobs:
       - name: Ricerca
         env:
           JR_CONFIG: ${{ secrets.JR_CONFIG }}
-          JR_LI_MINUTES: "30"   # una ricerca profonda al giorno sta nei 2.000 minuti gratuiti al mese
+          JR_LI_MINUTES: "30"
           JR_LI_SHARE: "0.6"
         run: python engine/ci_run.py "${{ matrix.utente }}"
       - name: Salva i risultati
