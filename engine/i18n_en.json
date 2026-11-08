@@ -1,0 +1,1008 @@
+{
+"exact": {
+"Ultime 24 ore": "Last 24 hours",
+"Preferiti e candidature": "Saved and applications",
+"Scartati": "Dismissed",
+"Strumenti": "Tools",
+"Il tuo CV": "Your CV",
+"Archivio per giorno": "Archive by day",
+"Aggiorna ora": "Refresh now",
+"Europa, ultime 24 ore": "Europe, last 24 hours",
+"Da dove arrivano gli annunci": "Where the ads come from",
+"Tema chiaro": "Light theme",
+"Tema scuro": "Dark theme",
+"Ultima ricerca": "Last search",
+"mai": "never",
+"Scegli un giorno": "Pick a day",
+"Restano qui finché non li togli": "They stay here until you remove them",
+"Annunci che hai scartato": "Ads you dismissed",
+"miglior score": "best score",
+"nuovi dall'ultima ricerca": "new since last search",
+"paesi": "countries",
+"città": "cities",
+"fonti attive": "active sources",
+"Nessun preferito per ora": "No saved ads yet",
+"Nessuna ricerca ancora eseguita": "No search run yet",
+"Filtri": "Filters",
+"Stato": "Status",
+"Ruolo": "Role",
+"Paese": "Country",
+"Città": "City",
+"Filtri dal tuo CV": "Filters from your CV",
+"Hai": "You have",
+"Ti manca": "You lack",
+"Requisiti": "Requirements",
+"Score minimo": "Minimum score",
+"Modalità": "Work mode",
+"Solo annunci in italiano o inglese": "Only ads in Italian or English",
+"Solo nuovi dall'ultima ricerca": "Only new since last search",
+"Ordina per": "Sort by",
+"Aderenza al profilo": "Profile fit",
+"Match con il CV": "CV match",
+"Parole chiave già nel CV (%)": "Keywords already in CV (%)",
+"Più recenti": "Most recent",
+"Azzera filtri": "Clear filters",
+"Tutti": "All",
+"Tutte": "All",
+"Mostra meno paesi": "Show fewer countries",
+"Esperienza, studi e lingue coperti": "Experience, education and languages covered",
+"Al massimo un requisito scoperto": "At most one requirement not covered",
+"Mi mancano al massimo 2 parole chiave": "I lack at most 2 keywords",
+"nessuno attivo": "none active",
+"Ruoli affini": "Related roles",
+"Ibrido": "Hybrid",
+"Altro": "Other",
+"Tutti gli annunci": "All ads",
+"Annunci scartati": "Dismissed ads",
+"Esporta in Excel": "Export to Excel",
+"Nuovo": "New",
+"Non indicato": "Not stated",
+"1 punto da controllare": "1 point to check",
+"Nessun preferito": "No saved ads",
+"Clicca la stella su un annuncio per salvarlo: resta qui anche quando esce dalla finestra delle 24 ore.": "Click the star on an ad to save it: it stays here even after it leaves the 24-hour window.",
+"Nessun annuncio scartato": "No dismissed ads",
+"Con «Non mi interessa» un annuncio sparisce dall'elenco e finisce qui.": "With “Not interested” an ad leaves the list and ends up here.",
+"Nessun annuncio in questa finestra": "No ads in this window",
+"La ricerca è stata eseguita ma nulla ha superato i filtri (data, lingue, settore). Riprova più tardi.": "The search ran but nothing passed the filters (date, languages, sector). Try again later.",
+"Nessun annuncio con questi filtri": "No ads with these filters",
+"Prova ad abbassare lo score minimo o a togliere un filtro.": "Try lowering the minimum score or removing a filter.",
+"Nessun annuncio da mostrare.": "No ads to show.",
+"Livello": "Level",
+"Contratto": "Contract",
+"Lingue": "Languages",
+"Trasferte": "Travel",
+"Settore": "Industry",
+"Skill richieste": "Required skills",
+"Skill richieste (verde: nel tuo CV, arancio: manca)": "Required skills (green: in your CV, orange: missing)",
+"Studi richiesti": "Required education",
+"Documenti e requisiti": "Documents and requirements",
+"Perché questo punteggio": "Why this score",
+"In breve": "In short",
+"L'annuncio non indica la città: sulla mappa il pallino è posizionato nel paese.": "The ad does not state the city: on the map the dot sits in the country.",
+"Apri annuncio": "Open ad",
+"Dettaglio match CV": "CV match details",
+"Adatta il CV a questo annuncio": "Tailor the CV to this ad",
+"Ripristina": "Restore",
+"Non mi interessa": "Not interested",
+"Chiudi": "Close",
+"Apri il dettaglio": "Open details",
+"Togli dai preferiti": "Remove from saved",
+"Salva tra i preferiti": "Save",
+"Nota": "Note",
+"Perché ti interessa, contatti, prossimi passi...": "Why it interests you, contacts, next steps...",
+"Da valutare": "To review",
+"Da candidarsi": "To apply",
+"Candidata": "Applied",
+"Colloquio": "Interview",
+"Offerta": "Offer",
+"Chiusa": "Closed",
+"Salvato tra i preferiti: resta finché non lo togli.": "Saved: it stays until you remove it.",
+"Scartato: lo ritrovi in «Scartati».": "Dismissed: you can find it under “Dismissed”.",
+"Per salvare apri Job Radar da «Avvia Job Radar.bat».": "To save, open Job Radar from “Avvia Job Radar.bat”.",
+"Non salvato.": "Not saved.",
+"Job Radar non risponde: rilancia «Avvia Job Radar.bat».": "Job Radar is not responding: launch “Avvia Job Radar.bat” again.",
+"Job Radar non risponde.": "Job Radar is not responding.",
+"Job Radar non risponde": "Job Radar is not responding",
+"Ingrandisci la mappa": "Enlarge the map",
+"Riduci la mappa": "Shrink the map",
+"Città non indicata": "City not stated",
+"Il numero nel cerchio: annunci in quella zona. Clicca per avvicinarti.": "The number in the circle: ads in that area. Click to zoom in.",
+"Italiano, Inglese": "Italian, English",
+"Da verificare (mercato locale)": "To check (local market)",
+"Da verificare (annuncio non letto)": "To check (ad not read)",
+"Stage": "Internship",
+"Esperienza": "Experience",
+"Indeterminato": "Permanent",
+"Determinato": "Fixed-term",
+"Software B2B": "B2B software",
+"Componente software poco esplicita": "Software component not explicit",
+"Lontano dalla mobility": "Far from mobility",
+"Verifica il legame con mobility/trasporti": "Check the link with mobility/transport",
+"Livello senior": "Senior level",
+"Livello junior/mid": "Junior/mid level",
+"Verifica se serve la lingua del paese": "Check whether the local language is needed",
+"Testo dell'annuncio non letto: requisiti da verificare": "Ad text not read: requirements to check",
+"Negoziazione": "Negotiation",
+"Pipeline e forecast": "Pipeline and forecast",
+"Demo di prodotto": "Product demos",
+"Gare e RFP": "Tenders and RFPs",
+"API e integrazioni": "APIs and integrations",
+"Partnership / canale": "Partnerships / channel",
+"Contratti B2B": "B2B contracts",
+"Laurea magistrale / Master": "Master's degree",
+"Laurea triennale / Bachelor": "Bachelor's degree",
+"Laurea": "Degree",
+"o esperienza equivalente": "or equivalent experience",
+"Lettera di motivazione": "Cover letter",
+"Referenze": "References",
+"Patente B": "Driving licence",
+"Controllo dei precedenti": "Background check",
+"Permesso di lavoro già valido (niente visto sponsorizzato)": "Valid work permit needed (no visa sponsorship)",
+"Permesso di lavoro nel paese": "Work permit in the country",
+"Visto sponsorizzabile dall'azienda": "Visa sponsorship available",
+"richieste": "required",
+"Ciclo di vendita completo": "Full sales cycle",
+"Acquisizione nuovi clienti": "New business acquisition",
+"Analisi di mercato": "Market analysis",
+"Gestione clienti / relazioni": "Client management / relationships",
+"Lead qualificati": "Qualified leads",
+"Fiere ed eventi": "Trade shows and events",
+"Quota e target": "Quota and targets",
+"Discovery e qualifica": "Discovery and qualification",
+"Proposte e offerte": "Proposals and quotes",
+"NDA / DPA / contratti": "NDA / DPA / contracts",
+"Lavoro cross-funzionale": "Cross-functional work",
+"Clienti enterprise": "Enterprise clients",
+"PMI / mid-market": "SMB / mid-market",
+"Mercato internazionale": "International market",
+"Presentazioni": "Presentations",
+"Localizzazione prodotto": "Product localization",
+"OEM e partner industriali": "OEMs and industrial partners",
+"Incolla qui il testo del CV": "Paste the CV text here",
+"Usa questo testo": "Use this text",
+"Aggiungi un altro CV": "Add another CV",
+"Carica il CV (PDF, DOCX)": "Upload CV (PDF, DOCX)",
+"Incolla il testo": "Paste text",
+"File troppo grande (massimo 8 MB).": "File too large (8 MB max).",
+"Testo troppo breve: incolla tutto il CV.": "Text too short: paste the whole CV.",
+"Sto leggendo il CV e ricalcolando i punteggi...": "Reading the CV and recalculating scores...",
+"Caricamento non riuscito.": "Upload failed.",
+"Carica il CV: Job Radar lo confronta con ogni annuncio e dà un punteggio da 0 a 100, come farebbe un software di selezione. Il file resta su questo computer.": "Upload your CV: Job Radar compares it with every ad and gives a 0-100 score, as recruiting software would. The file stays on this computer.",
+"Per caricare il CV e vedere il punteggio per ogni annuncio apri Job Radar da «Avvia Job Radar.bat».": "To upload the CV and see the score for each ad, open Job Radar from “Avvia Job Radar.bat”.",
+"Leggibilità per i software di selezione": "Readability for recruiting software",
+"Quanto bene un sistema automatico riesce a leggere e classificare il CV.": "How well an automated system can read and classify the CV.",
+"Esperienza rilevata": "Experience detected",
+"non rilevata": "not detected",
+"Studi": "Education",
+"non rilevati": "not detected",
+"laurea triennale": "bachelor's degree",
+"laurea magistrale": "master's degree",
+"Ruoli riconosciuti": "Roles recognised",
+"Skill trovate": "Skills found",
+"Lunghezza": "Length",
+"in uso per il match": "in use for matching",
+"Usa per il match": "Use for matching",
+"Scarica": "Download",
+"Elimina": "Delete",
+"Traduci in inglese": "Translate to English",
+"Traduci in italiano": "Translate to Italian",
+"Traduco sul tuo computer...": "Translating on your computer...",
+"Traduzione non riuscita.": "Translation failed.",
+"Traduzione in inglese": "Translation into English",
+"Traduzione in italiano": "Translation into Italian",
+"Genera il CV in inglese": "Generate the CV in English",
+"Genera il CV in italiano": "Generate the CV in Italian",
+"Genero il file...": "Generating the file...",
+"Non riuscito.": "Failed.",
+"Scarica il CV tradotto": "Download the translated CV",
+"Usalo per il match": "Use it for matching",
+"Ricalcolo...": "Recalculating...",
+"Originale (italiano)": "Original (Italian)",
+"Originale (inglese)": "Original (English)",
+"Traduzione (inglese), modificabile": "Translation (English), editable",
+"Traduzione (italiano), modificabile": "Translation (Italian), editable",
+"Il tuo CV per questo annuncio": "Your CV for this ad",
+"su 100": "out of 100",
+"Parole chiave dell'annuncio trovate nel CV": "Ad keywords found in the CV",
+"Parole chiave dell'annuncio che mancano nel CV": "Ad keywords missing from the CV",
+"Cosa fare": "What to do",
+"Come seleziona questa azienda": "How this company screens",
+"Analisi approfondita con Claude": "In-depth analysis with Claude",
+"Disponibile aprendo Job Radar da «Avvia Job Radar.bat».": "Available when Job Radar is opened from “Avvia Job Radar.bat”.",
+"Per attivarla serve una chiave API Anthropic in config.json (sezione \"anthropic\"). Ogni analisi costa pochi centesimi.": "To enable it you need an Anthropic API key in config.json (section \"anthropic\"). Each analysis costs a few cents.",
+"Claude legge il CV e l'annuncio per intero e dà un giudizio da selezionatore. Invia ad Anthropic il testo del CV e dell'annuncio. Costo: pochi centesimi.": "Claude reads the whole CV and ad and gives a recruiter's opinion. It sends the CV and ad text to Anthropic. Cost: a few cents.",
+"Chiedi l'analisi a Claude": "Ask Claude for the analysis",
+"Claude sta leggendo (fino a un minuto)...": "Claude is reading (up to a minute)...",
+"Analisi non riuscita.": "Analysis failed.",
+"Riprova": "Retry",
+"Carica prima il CV.": "Upload the CV first.",
+"Carica": "Upload",
+"Valutazione": "Assessment",
+"Migliora": "Improve",
+"Traduci": "Translate",
+"Adatta a un annuncio": "Tailor to an ad",
+"Carica il CV in PDF o DOCX con il pulsante qui sopra. Resta su questo computer.": "Upload the CV as PDF or DOCX with the button above. It stays on this computer.",
+"Job Radar dà un voto da 0 a 100 a come i software di selezione leggono il CV e ti dice cosa sistemare.": "Job Radar scores from 0 to 100 how recruiting software reads the CV and tells you what to fix.",
+"Apri il CV blocco per blocco, con i consigli accanto, e scarichi la versione corretta con la stessa impaginazione.": "Open the CV block by block, with the advice next to it, and download the corrected version with the same layout.",
+"Traduzione italiano-inglese fatta sul tuo computer, da rileggere e correggere prima di generare il file.": "Italian-English translation done on your computer, to review and correct before generating the file.",
+"Per ogni annuncio vedi quanto il CV è in linea, cosa manca e crei in un clic la versione adattata.": "For each ad you see how well the CV fits, what is missing, and create the tailored version in one click.",
+"Migliora il CV": "Improve the CV",
+"Traduci il CV": "Translate the CV",
+"Adatta il CV a un annuncio": "Tailor the CV to an ad",
+"Job Radar apre il CV blocco per blocco con i consigli della valutazione qui sopra. Correggi il testo e ottieni un nuovo file con la stessa impaginazione.": "Job Radar opens the CV block by block with the advice from the assessment above. Fix the text and get a new file with the same layout.",
+"Apri i consigli e modifica": "Open advice and edit",
+"Per modificare e tradurre serve un CV in PDF o DOCX.": "Editing and translating need a CV in PDF or DOCX.",
+"Fai una ricerca per vedere qui gli annunci.": "Run a search to see the ads here.",
+"Gli annunci di adesso più in linea con il tuo CV. «Adatta» mostra cosa manca per quell'annuncio e crea la versione su misura. Lo stesso pulsante è nel dettaglio di ogni annuncio.": "The current ads that best fit your CV. “Tailor” shows what is missing for that ad and creates the custom version. The same button is in every ad's details.",
+"Adatta": "Tailor",
+"Vedi": "View",
+"Vedi l'annuncio": "View the ad",
+"Apro il CV...": "Opening the CV...",
+"Non riesco ad aprire il CV.": "Cannot open the CV.",
+"su 100: quanto il CV di adesso è in linea con questo annuncio": "out of 100: how well the current CV fits this ad",
+"su 100: quanto bene i software di selezione leggono il CV di adesso": "out of 100: how well recruiting software reads the current CV",
+"Cosa cambiare": "What to change",
+"Il CV copre già i requisiti riconoscibili di questo annuncio: puoi comunque ritoccare il testo.": "The CV already covers the recognisable requirements of this ad: you can still polish the text.",
+"Nessun problema di leggibilità: puoi comunque ritoccare il testo.": "No readability problems: you can still polish the text.",
+"Parole chiave che l'annuncio chiede e il CV non ha: clicca solo quelle che hai davvero": "Keywords the ad asks for and the CV lacks: click only the ones you really have",
+"Nel CV non trovo una sezione competenze: scrivi la parola a mano nel blocco giusto.": "I cannot find a skills section in the CV: type the word by hand in the right block.",
+"Le parole scelte finiscono nel blocco delle competenze, evidenziato in arancio qui sotto. Per farle pesare di più, usale anche nelle frasi delle esperienze.": "The chosen words go into the skills block, highlighted in orange below. To make them count more, use them in the experience sentences too.",
+"Nel CV non c'è una sezione competenze riconoscibile: aggiungi le parole a mano nel blocco giusto qui sotto.": "The CV has no recognisable skills section: add the words by hand in the right block below.",
+"Riscrivi con Claude": "Rewrite with Claude",
+"Claude sta riscrivendo (fino a un minuto)...": "Claude is rewriting (up to a minute)...",
+"Riscrittura non riuscita.": "Rewrite failed.",
+"Qui modifichi il testo a mano seguendo i consigli. Per avere le frasi già riscritte da Claude serve una chiave API Anthropic in config.json (sezione \"anthropic\").": "Here you edit the text by hand following the advice. To get sentences already rewritten by Claude you need an Anthropic API key in config.json (section \"anthropic\").",
+"Testo di adesso": "Current text",
+"Testo nuovo, modificabile": "New text, editable",
+"Nuovo testo del blocco": "New text of the block",
+"Applica le modifiche e crea il nuovo PDF": "Apply changes and create the new PDF",
+"Applica le modifiche e crea il nuovo DOCX": "Apply changes and create the new DOCX",
+"1 blocco modificato": "1 block changed",
+"Creo il file...": "Creating the file...",
+"Scarica il nuovo PDF": "Download the new PDF",
+"Scarica il nuovo DOCX": "Download the new DOCX",
+"Match con l'annuncio, prima e dopo.": "Match with the ad, before and after.",
+"Leggibilità, prima e dopo.": "Readability, before and after.",
+"Creato": "Created",
+"Originale": "Original",
+"Tradotto": "Translated",
+"Modificato": "Edited",
+"Testo leggibile dal sistema": "Text readable by the system",
+"Date delle esperienze leggibili": "Experience dates readable",
+"Contatti presenti (email e telefono)": "Contacts present (email and phone)",
+"Esperienze descritte per punti": "Experience described in bullet points",
+"Risultati con numeri": "Results with numbers",
+"Lunghezza adeguata (1-2 pagine)": "Adequate length (1-2 pages)",
+"Nessun refuso evidente": "No obvious typos",
+"Link al profilo LinkedIn": "LinkedIn profile link",
+"Il CV sembra un'immagine o ha pochissimo testo: esportalo da Canva come 'PDF standard' con testo selezionabile, non come immagine.": "The CV looks like an image or has very little text: export it from Canva as 'PDF standard' with selectable text, not as an image.",
+"Scrivi le date nel formato 'Mese Anno - Mese Anno' accanto a ogni esperienza.": "Write dates as 'Month Year - Month Year' next to each experience.",
+"Aggiungi email e telefono come testo, non dentro un'immagine o un'icona.": "Add email and phone as text, not inside an image or icon.",
+"Descrivi ogni esperienza con 3-6 punti elenco che iniziano con un verbo d'azione.": "Describe each experience with 3-6 bullet points starting with an action verb.",
+"Aggiungi numeri ai risultati (clienti acquisiti, valore dei contratti, lead generati, percentuali): oggi ce ne sono pochi.": "Add numbers to results (clients won, contract value, leads generated, percentages): there are few today.",
+"Punta a 350-800 parole: sotto è troppo scarno per le parole chiave, sopra viene letto a metà.": "Aim for 350-800 words: fewer is too thin for keywords, more gets half-read.",
+"Aggiungi il link al profilo LinkedIn: molti selezionatori lo aprono subito.": "Add your LinkedIn profile link: many recruiters open it straight away.",
+"Parole chiave e skill": "Keywords and skills",
+"Coerenza del ruolo": "Role consistency",
+"Qualità del CV": "CV quality",
+"Testo dell'annuncio non disponibile o senza requisiti riconoscibili: valore neutro.": "Ad text not available or without recognisable requirements: neutral value.",
+"Ruolo vicino a quelli svolti: l'esperienza commerciale è trasferibile.": "Role close to past ones: the sales experience is transferable.",
+"Nel CV non c'è un ruolo dello stesso tipo: va spiegato perché sei adatta.": "The CV has no role of the same type: explain why you are a fit.",
+"Nel titolo o nel sommario del CV usa le parole del ruolo cercato, se descrivono davvero il tuo lavoro.": "In the CV title or summary use the words of the target role, if they truly describe your work.",
+"Ruolo senior: l'esperienza attuale è probabilmente sotto le attese.": "Senior role: current experience is probably below expectations.",
+"L'annuncio non indica gli anni richiesti.": "The ad does not state the years required.",
+"L'annuncio non indica un titolo di studio.": "The ad does not state a degree.",
+"Titolo di studio in linea con quanto richiesto.": "Degree in line with the requirement.",
+"Il titolo richiesto non risulta dal CV.": "The required degree does not appear in the CV.",
+"Annuncio in lingua locale: quasi certamente serve una lingua che non è nel CV.": "Ad in the local language: a language not in the CV is almost certainly needed.",
+"Prima di candidarti verifica se la lingua del paese è obbligatoria.": "Before applying, check whether the local language is mandatory.",
+"Inglese: l'annuncio chiede un livello alto. Se hai una certificazione o esperienze di lavoro in inglese (rapporti con la sede estera, trattative), scrivile in modo esplicito.": "English: the ad asks for a high level. If you have a certificate or work experience in English (dealings with headquarters abroad, negotiations), state them explicitly.",
+"Una lingua aggiuntiva è gradita ma non obbligatoria.": "An additional language is welcome but not mandatory.",
+"Le lingue richieste sono coperte dal CV.": "The required languages are covered by the CV.",
+"Annuncio in ambito software/tecnologia, come l'esperienza nel CV.": "Ad in software/technology, like the experience in the CV.",
+"Annuncio in ambito software, poco visibile nel CV.": "Ad in software, barely visible in the CV.",
+"Settore diverso dal software: l'esperienza è trasferibile ma meno diretta.": "Sector other than software: the experience is transferable but less direct.",
+"Il CV parla molto di mobility: per questo annuncio descrivi il lavoro in termini di software, piattaforme e vendita B2B, che valgono in ogni settore.": "The CV talks a lot about mobility: for this ad describe the work in terms of software, platforms and B2B sales, which apply to every sector.",
+"Questa azienda usa Greenhouse. Di norma non assegna un punteggio automatico al CV: i selezionatori leggono le candidature e cercano per parole chiave. Conta che le parole dell'annuncio siano nel CV e che le eventuali domande di candidatura abbiano risposte complete.": "This company uses Greenhouse. It normally does not score CVs automatically: recruiters read applications and search by keyword. What matters is that the ad's words are in the CV and that any application questions get complete answers.",
+"Questa azienda usa Lever. Il CV viene letto e reso ricercabile, senza punteggio automatico: i selezionatori filtrano per parole chiave e tag. Un PDF con testo selezionabile e titoli di sezione standard viene letto meglio.": "This company uses Lever. The CV is parsed and made searchable, with no automatic score: recruiters filter by keywords and tags. A PDF with selectable text and standard section headings is parsed better.",
+"Questa azienda usa Ashby. Può affiancare al selezionatore una valutazione assistita dall'AI rispetto ai criteri dell'annuncio (se l'azienda la attiva): servono requisiti dichiarati in modo esplicito nel CV, non impliciti.": "This company uses Ashby. It can give the recruiter an AI-assisted assessment against the ad's criteria (if the company enables it): requirements must be stated explicitly in the CV, not implied.",
+"Questa azienda usa Workable, che può mostrare al selezionatore un indice di corrispondenza tra CV e annuncio. Le parole chiave dell'annuncio presenti nel CV pesano molto.": "This company uses Workable, which can show the recruiter a match index between CV and ad. Ad keywords present in the CV weigh heavily.",
+"Questa azienda usa SmartRecruiters, che ha una funzione di punteggio di corrispondenza (SmartAssistant) basata su skill, esperienza e studi. Titoli di ruolo e skill scritti come nell'annuncio aiutano.": "This company uses SmartRecruiters, which has a match-scoring feature (SmartAssistant) based on skills, experience and education. Role titles and skills written as in the ad help.",
+"Questa azienda usa Personio: gestione delle candidature senza punteggio automatico. Decide il selezionatore leggendo il CV.": "This company uses Personio: application tracking with no automatic score. The recruiter decides by reading the CV.",
+"Questa azienda usa Recruitee: candidature gestite a mano dal team, con ricerca per parole chiave.": "This company uses Recruitee: applications handled manually by the team, with keyword search.",
+"Candidatura da LinkedIn: il selezionatore vede un riepilogo di corrispondenza basato su skill e titoli del profilo LinkedIn, oltre al CV. Conviene allineare le skill del profilo a quelle dell'annuncio.": "Application via LinkedIn: the recruiter sees a match summary based on the skills and titles of the LinkedIn profile, as well as the CV. It pays to align the profile's skills with the ad's.",
+"Sistema di selezione dell'azienda non noto. Vale la regola generale: CV in PDF con testo selezionabile, sezioni con titoli standard, parole dell'annuncio riportate dove sono vere.": "The company's recruiting system is not known. The general rule applies: CV as PDF with selectable text, sections with standard headings, the ad's words used where true.",
+"Sto cercando gli annunci...": "Searching for ads...",
+"Riduci": "Minimise",
+"Apri": "Open",
+"1. Fonti rapide": "1. Fast sources",
+"2. LinkedIn: ricerca in 30 paesi": "2. LinkedIn: search in 30 countries",
+"3. LinkedIn: lettura degli annunci": "3. LinkedIn: reading the ads",
+"4. Filtri e punteggio": "4. Filters and scoring",
+"Gioca mentre aspetti": "Play while you wait",
+"quasi finito": "almost done",
+"Cerco gli annunci usciti nelle ultime 24 ore in 30 paesi e leggo per primi i più adatti a te. Intanto, qualche numero sul tuo mercato.": "Looking for ads published in the last 24 hours in 30 countries, reading the best fits first. Meanwhile, a few numbers about your market.",
+"Ricerca non riuscita": "Search failed",
+"La finestra nera di Job Radar è stata chiusa? Rilancia «Avvia Job Radar.bat».": "Was the black Job Radar window closed? Launch “Avvia Job Radar.bat” again.",
+"Avvio la ricerca...": "Starting the search...",
+"Benvenuta su Job Radar": "Welcome to Job Radar",
+"Fai doppio clic su «Avvia Job Radar.bat» per cercare gli annunci delle ultime 24 ore.": "Double-click “Avvia Job Radar.bat” to search for ads from the last 24 hours.",
+"Per aggiornare con un clic apri Job Radar da «Avvia Job Radar.bat».": "To refresh with one click, open Job Radar from “Avvia Job Radar.bat”.",
+"Fonte: Eurostat, Statistics Explained": "Source: Eurostat, Statistics Explained",
+"Fonte: Eurostat, dato letto adesso dalla banca dati": "Source: Eurostat, figure read just now from the database",
+"Corsa al colloquio: salta gli ostacoli con la barra spaziatrice, la freccia su o un clic.": "Race to the interview: jump the obstacles with the space bar, the up arrow or a click.",
+"Acchiappa l'offerta: muovi il cestino con le frecce o il mouse. Prendi quelle verdi, schiva quelle arancio.": "Catch the offer: move the basket with the arrows or the mouse. Catch the green ones, dodge the orange ones.",
+"Dalla tua ultima ricerca": "From your last search",
+"Numeri calcolati sugli annunci trovati da Job Radar.": "Numbers computed on the ads Job Radar found.",
+"Se una di queste manca nel CV, vale la pena aggiungerla dove è vera.": "If one of these is missing from your CV, it is worth adding where true.",
+"Molti annunci non indicano il livello: guarda gli anni di esperienza richiesti.": "Many ads do not state the level: look at the years of experience required.",
+"Chi lavora nel digitale": "Who works in digital",
+"10 milioni": "10 million",
+"Le persone che nel 2025 lavoravano come specialisti ICT nell'Unione Europea: il 5,0% di tutti gli occupati.": "People working as ICT specialists in the European Union in 2025: 5.0% of everyone in work.",
+"Un settore che cresce": "A growing sector",
+"La crescita degli specialisti ICT nell'UE tra il 2015 e il 2025: oltre 6 volte quella dell'occupazione totale (+9,8%).": "Growth of ICT specialists in the EU between 2015 and 2025: more than 6 times that of total employment (+9.8%).",
+"Il software B2B è il settore su cui Job Radar filtra gli annunci per te.": "B2B software is the sector Job Radar filters ads on for you.",
+"+59,4%": "+59.4%",
+"19,5%": "19.5%",
+"8,9%": "8.9%",
+"57,5%": "57.5%",
+"72% e 30%": "72% and 30%",
+"2,0%": "2.0%",
+"87,0%": "87.0%",
+"76,1%": "76.1%",
+"Donne nel digitale": "Women in digital",
+"La quota di donne tra gli specialisti ICT nell'UE nel 2025. Gli uomini sono l'80,5%.": "The share of women among ICT specialists in the EU in 2025. Men are 80.5%.",
+"Dove il digitale pesa di più": "Where digital weighs most",
+"La Svezia è il paese UE con la quota più alta di specialisti ICT sul totale degli occupati (2025). Seguono Lussemburgo e Finlandia.": "Sweden is the EU country with the highest share of ICT specialists among people in work (2025). Luxembourg and Finland follow.",
+"Job Radar cerca anche in Svezia, Lussemburgo e Finlandia.": "Job Radar also searches in Sweden, Luxembourg and Finland.",
+"Profili difficili da trovare": "Hard-to-find profiles",
+"Delle imprese UE che nel 2023 hanno cercato specialisti ICT, più di una su due ha faticato a coprire il posto.": "Of EU companies that looked for ICT specialists in 2023, more than one in two struggled to fill the role.",
+"Solo il 9,55% delle imprese UE ha cercato specialisti ICT in quell'anno.": "Only 9.55% of EU companies looked for ICT specialists that year.",
+"Germania e Spagna a confronto": "Germany and Spain compared",
+"In Germania il 72,4% delle imprese che cercavano specialisti ICT ha avuto difficoltà a trovarli; in Spagna il 30,2%, il valore più basso dell'UE (2023).": "In Germany 72.4% of companies looking for ICT specialists had trouble finding them; in Spain 30.2%, the lowest in the EU (2023).",
+"Job Radar cerca in entrambi i paesi.": "Job Radar searches in both countries.",
+"Posti vacanti": "Job vacancies",
+"La quota di posti di lavoro vacanti nell'UE nel secondo trimestre 2026. In testa i Paesi Bassi con il 4,1%, poi il Belgio.": "The share of vacant jobs in the EU in the second quarter of 2026. The Netherlands leads with 4.1%, then Belgium.",
+"Neolaureati al lavoro": "Recent graduates in work",
+"Il tasso di occupazione dei neolaureati (istruzione terziaria, 20-34 anni) nell'UE nel 2025.": "The employment rate of recent graduates (tertiary education, ages 20-34) in the EU in 2025.",
+"Considerando tutti i neodiplomati e neolaureati la media UE è l'83%; in Italia il 71,8%.": "Counting all recent graduates the EU average is 83%; in Italy 71.8%.",
+"Occupazione in Europa": "Employment in Europe",
+"Il tasso di occupazione nell'UE (20-64 anni) nel 2025, su circa 198 milioni di occupati. L'Italia è al 67,6%, il valore più basso.": "The EU employment rate (ages 20-64) in 2025, with around 198 million people in work. Italy is at 67.6%, the lowest.",
+"Generato da Job Radar sul tuo computer. Dati da fonti pubbliche: verifica sempre l’annuncio originale. Città: GeoNames (CC BY 4.0). Contorni: Natural Earth.": "Generated by Job Radar on your computer. Data from public sources: always check the original ad. Cities: GeoNames (CC BY 4.0). Outlines: Natural Earth.",
+"Riscrivi con l'AI sul tuo computer": "Rewrite with the AI on your computer",
+"L'AI sta riscrivendo (alcuni minuti)...": "The AI is rewriting (a few minutes)...",
+"Traduci con l'AI sul tuo computer (più naturale, più lenta)": "Translate with the AI on your computer (more natural, slower)",
+"L'AI sta traducendo (alcuni minuti)...": "The AI is translating (a few minutes)...",
+"Nessuna modifica proposta.": "No changes proposed.",
+"1 blocco riscritto: controllalo qui sotto.": "1 block rewritten: check it below.",
+"Corsa al colloquio: salta gli ostacoli con la barra spaziatrice, la freccia su o un clic. Le stelle valgono 10 punti.": "Race to the interview: jump the obstacles with the space bar, the up arrow or a click. Stars are worth 10 points.",
+"Acchiappa l'offerta: muovi la valigetta con le frecce o il mouse. Prendi le carte verdi, schiva quelle rosse.": "Catch the offer: move the briefcase with the arrows or the mouse. Catch the green cards, dodge the red ones.",
+"Giochino per l'attesa": "Mini-game for the wait",
+"Azienda": "Company",
+"Italia": "Italy",
+"Spagna": "Spain",
+"Francia": "France",
+"Germania": "Germany",
+"Regno Unito": "United Kingdom",
+"Irlanda": "Ireland",
+"Paesi Bassi": "Netherlands",
+"Belgio": "Belgium",
+"Svizzera": "Switzerland",
+"Portogallo": "Portugal",
+"Lussemburgo": "Luxembourg",
+"Svezia": "Sweden",
+"Danimarca": "Denmark",
+"Norvegia": "Norway",
+"Finlandia": "Finland",
+"Polonia": "Poland",
+"Repubblica Ceca": "Czech Republic",
+"Ungheria": "Hungary",
+"Grecia": "Greece",
+"Lettonia": "Latvia",
+"Lituania": "Lithuania",
+"Croazia": "Croatia",
+"Slovacchia": "Slovakia",
+"Cipro": "Cyprus",
+"Europa (remote)": "Europe (remote)"
+},
+"rx": [
+[
+"^(\\d+) punti da controllare$",
+"$1 points to check"
+],
+[
+"^(\\d+) attivi? · (\\d+) annunci$",
+"$1 active · $2 ads"
+],
+[
+"^(\\d+) di (\\d+)$",
+"$1 of $2"
+],
+[
+"^Mostra altri annunci \\((\\d+) rimasti\\)$",
+"Show more ads ($1 left)"
+],
+[
+"^Altri (\\d+) paesi$",
+"$1 more countries"
+],
+[
+"^(\\d+) sulla mappa( · (\\d+) senza località)?$",
+"$1 on the map"
+],
+[
+"^Europa · pubblicati dal (.+) al (.+)$",
+"Europe · published from $1 to $2"
+],
+[
+"^Archivio · trovati il (.+)$",
+"Archive · found on $1"
+],
+[
+"^Trovati il (.+) \\((\\d+)\\)$",
+"Found on $1 ($2)"
+],
+[
+"^(\\d+) blocchi modificati$",
+"$1 blocks changed"
+],
+[
+"^Richiesti (\\d+) anni di esperienza \\(attuali: 2\\)$",
+"$1 years of experience required (current: 2)"
+],
+[
+"^Richiesti (\\d+) anni, nel CV ne risultano circa (.+)\\.$",
+"$1 years required, the CV shows about $2."
+],
+[
+"^Ruolo (.+)$",
+"$1 role"
+],
+[
+"^(\\w+) solo preferibile$",
+"$1 only preferred"
+],
+[
+"^Inglese \\((\\w+) preferibile\\)$",
+"English ($1 preferred)"
+],
+[
+"^Annuncio in (\\w+) \\(cita l'inglese\\): la lingua locale probabilmente serve$",
+"Ad in $1 (mentions English): the local language is probably needed"
+],
+[
+"^Inglese citato, (\\w+) da verificare$",
+"English mentioned, $1 to check"
+],
+[
+"^Trasferte fino al (\\d+)%$",
+"Travel up to $1%"
+],
+[
+"^fino al (\\d+)%$",
+"up to $1%"
+],
+[
+"^Ambito: (.+)$",
+"Field: $1"
+],
+[
+"^(\\d+) su (\\d+) parole chiave dell'annuncio sono nel CV \\((\\d+)%\\)\\.$",
+"$1 of $2 ad keywords are in the CV ($3%)."
+],
+[
+"^Parole chiave dell'annuncio assenti dal CV: (.+)\\. Aggiungile solo se corrispondono a cose che hai fatto davvero\\.$",
+"Ad keywords absent from the CV: $1. Add them only if they match things you really did."
+],
+[
+"^Il CV riporta già un ruolo (.+)\\.$",
+"The CV already shows a $1 role."
+],
+[
+"^L'annuncio chiede (\\d+) anni: compensa.+$",
+"The ad asks for $1 years: compensate by highlighting concrete results and responsibilities (first clients won, sales cycle handled on your own)."
+],
+[
+"^L'annuncio chiede inglese fluente o avanzato; il CV dichiara (.+)\\.$",
+"The ad asks for fluent or advanced English; the CV states $1."
+],
+[
+"^Leggibilità del CV per i sistemi di selezione: (\\d+)/100\\.$",
+"CV readability for recruiting systems: $1/100."
+],
+[
+"^Sezione '(.+)' riconoscibile$",
+"'$1' section recognisable"
+],
+[
+"^Usa un titolo di sezione standard per '(.+)' su una riga a sé: i sistemi cercano proprio quei titoli\\.$",
+"Use a standard section heading for '$1' on its own line: systems look for exactly those headings."
+],
+[
+"^Possibili refusi: (.+)\\. Un refuso su una parola chiave la rende introvabile per il sistema\\.$",
+"Possible typos: $1. A typo in a keyword makes it unfindable for the system."
+],
+[
+"^su 100 · (\\d+)% delle parole chiave dell'annuncio presenti nel CV$",
+"out of 100 · $1% of the ad's keywords present in the CV"
+],
+[
+"^CV in uso: (.+)\\. Ogni annuncio ha il suo punteggio di match.+$",
+"CV in use: $1. Every ad has its own match score: open an ad and click “CV match details”. The file stays on this computer."
+],
+[
+"^Il CV in uso è in (\\w+)\\. La traduzione avviene.+$",
+"The CV in use is in $1. Translation happens on your computer: you review it, correct it and download the translated file, with the same layout."
+],
+[
+"^(.+)\\. La traduzione è fatta sul tuo computer.+$",
+"$1. The translation is done on your computer by an automatic model: review it and correct it on the right before generating the file. Names, emails and numbers stay the same."
+],
+[
+"^Traduzione di: (.+)$",
+"Translation of: $1"
+],
+[
+"^(\\d+) blocchi rimpiccioliti per farli stare nello spazio\\.$",
+"$1 blocks shrunk to fit the space."
+],
+[
+"^(\\d+) blocchi non sono entrati: accorcia quelle frasi e (rigenera|riprova)\\.$",
+"$1 blocks did not fit: shorten those sentences and try again."
+],
+[
+"^Trascorsi (.+)$",
+"Elapsed $1"
+],
+[
+"^(\\d+) blocchi riscritti: controllali qui sotto\\.$",
+"$1 blocks rewritten: check them below."
+],
+[
+"^Scarica l'AI gratuita \\((.+) GB, una volta sola\\)$",
+"Download the free AI ($1 GB, once only)"
+],
+[
+"^Scarico il modello: (.+)%$",
+"Downloading the model: $1%"
+],
+[
+"^AI gratuita sul tuo computer \\(modello open source Qwen3\\): propone le frasi già riscritte( per questo annuncio)? senza inviare nulla.+$",
+"Free AI on your computer (open-source Qwen3 model): it proposes rewritten sentences without sending anything off the PC. It takes a few minutes; you check everything below before applying."
+],
+[
+"^ancora circa (\\d+) min$",
+"about $1 min left"
+],
+[
+"^(\\d+) di (\\d+) · cambia da solo ogni 12 secondi$",
+"$1 of $2 · changes every 12 seconds"
+],
+[
+"^Dalla tua ultima ricerca \\((.+)\\)$",
+"From your last search ($1)"
+],
+[
+"^(.+) è il tipo di ruolo più frequente: (\\d+) annunci su (\\d+)\\.$",
+"$1 is the most frequent role type: $2 ads out of $3."
+],
+[
+"^Il paese con più annunci adatti: (\\d+)\\. Poi (.+) \\((\\d+)\\) e (.+) \\((\\d+)\\)\\.$",
+"The country with the most suitable ads: $1. Then $2 ($3) and $4 ($5)."
+],
+[
+"^La competenza più richiesta: compare in (\\d+) annunci\\. Poi (.+) \\((\\d+)\\) e (.+) \\((\\d+)\\)\\.$",
+"The most requested skill: it appears in $1 ads. Then $2 ($3) and $4 ($5)."
+],
+[
+"^Gli annunci che si possono fare da remoto: (\\d+) su (\\d+)\\.$",
+"Ads that can be done remotely: $1 out of $2."
+],
+[
+"^Gli annunci dichiarati di livello junior su (\\d+)\\.$",
+"Ads stated as junior level out of $1."
+],
+[
+"^Nessun annuncio (.+)$",
+"No ads $1"
+],
+[
+"^Eliminare (.+)\\?$",
+"Delete $1?"
+],
+[
+"^Claude può proporre le frasi già riscritte( per questo annuncio)?, senza inventare nulla.+$",
+"Claude can propose rewritten sentences$1 without inventing anything: you check them below before applying. It sends the CV text to Anthropic. Cost: a few cents."
+],
+[
+"^Analisi generata da Claude \\((.*)\\)\\. È un parere.+$",
+"Analysis generated by Claude ($1). It is an opinion: always check the original ad."
+],
+[
+"^Ricerca non riuscita$",
+"Search failed"
+],
+[
+"^(.+)\\. Controlla la connessione e riprova\\.$",
+"$1. Check the connection and try again."
+],
+[
+"^circa (.+) anni$",
+"about $1 years"
+],
+[
+"^(\\d+) parole$",
+"$1 words"
+]
+],
+"sub": [
+[
+"^annunci? (?=uscit|trovat|tra i|scartat)",
+"ads "
+],
+[
+"\\((\\d+)\\+ anni\\)",
+"($1+ years)"
+],
+[
+"\\bpubblicato il ",
+"posted on "
+],
+[
+"\\bSalvato il ",
+"Saved on "
+],
+[
+"\\bcandidata il ",
+"applied on "
+],
+[
+"nessuna risposta da (\\d+) giorni: valuta un sollecito",
+"no reply for $1 days: consider a follow-up"
+],
+[
+"annuncio non più in archivio: controlla che sia ancora aperto",
+"ad no longer in the archive: check it is still open"
+],
+[
+"\\busciti? in (\\d+) ore",
+"published in $1 hours"
+],
+[
+"\\btrovati? quel giorno",
+"found that day"
+],
+[
+"\\btra i preferiti",
+"saved"
+],
+[
+"\\bscartat[oi]$",
+"dismissed"
+],
+[
+" per questo annuncio\\b",
+" for this ad"
+],
+[
+"\\bIndeterminato\\b",
+"Permanent"
+],
+[
+"\\bDeterminato\\b",
+"Fixed-term"
+],
+[
+"\\bMatch CV\\b",
+"CV match"
+],
+[
+"\\bparole\\b",
+"words"
+],
+[
+" · in uso\\b",
+" · in use"
+],
+[
+"'Esperienza'",
+"'Experience'"
+],
+[
+"'Formazione'",
+"'Education'"
+],
+[
+"'Competenze'",
+"'Skills'"
+],
+[
+"'Lingue'",
+"'Languages'"
+],
+[
+"(^|, | · |: )Italia(?=$| · |,| \\()",
+"$1Italy"
+],
+[
+"(^|, | · |: )Spagna(?=$| · |,| \\()",
+"$1Spain"
+],
+[
+"(^|, | · |: )Francia(?=$| · |,| \\()",
+"$1France"
+],
+[
+"(^|, | · |: )Germania(?=$| · |,| \\()",
+"$1Germany"
+],
+[
+"(^|, | · |: )Regno\\ Unito(?=$| · |,| \\()",
+"$1United Kingdom"
+],
+[
+"(^|, | · |: )Irlanda(?=$| · |,| \\()",
+"$1Ireland"
+],
+[
+"(^|, | · |: )Paesi\\ Bassi(?=$| · |,| \\()",
+"$1Netherlands"
+],
+[
+"(^|, | · |: )Belgio(?=$| · |,| \\()",
+"$1Belgium"
+],
+[
+"(^|, | · |: )Svizzera(?=$| · |,| \\()",
+"$1Switzerland"
+],
+[
+"(^|, | · |: )Portogallo(?=$| · |,| \\()",
+"$1Portugal"
+],
+[
+"(^|, | · |: )Lussemburgo(?=$| · |,| \\()",
+"$1Luxembourg"
+],
+[
+"(^|, | · |: )Svezia(?=$| · |,| \\()",
+"$1Sweden"
+],
+[
+"(^|, | · |: )Danimarca(?=$| · |,| \\()",
+"$1Denmark"
+],
+[
+"(^|, | · |: )Norvegia(?=$| · |,| \\()",
+"$1Norway"
+],
+[
+"(^|, | · |: )Finlandia(?=$| · |,| \\()",
+"$1Finland"
+],
+[
+"(^|, | · |: )Polonia(?=$| · |,| \\()",
+"$1Poland"
+],
+[
+"(^|, | · |: )Repubblica\\ Ceca(?=$| · |,| \\()",
+"$1Czech Republic"
+],
+[
+"(^|, | · |: )Ungheria(?=$| · |,| \\()",
+"$1Hungary"
+],
+[
+"(^|, | · |: )Grecia(?=$| · |,| \\()",
+"$1Greece"
+],
+[
+"(^|, | · |: )Lettonia(?=$| · |,| \\()",
+"$1Latvia"
+],
+[
+"(^|, | · |: )Lituania(?=$| · |,| \\()",
+"$1Lithuania"
+],
+[
+"(^|, | · |: )Croazia(?=$| · |,| \\()",
+"$1Croatia"
+],
+[
+"(^|, | · |: )Slovacchia(?=$| · |,| \\()",
+"$1Slovakia"
+],
+[
+"(^|, | · |: )Cipro(?=$| · |,| \\()",
+"$1Cyprus"
+],
+[
+"(^|, | · |: )Europa\\ \\(remote\\)(?=$| · |,| \\()",
+"$1Europe (remote)"
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )spagnolo\\b",
+"$1Spanish"
+],
+[
+" · spagnolo · ",
+" · Spanish · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )francese\\b",
+"$1French"
+],
+[
+" · francese · ",
+" · French · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )tedesco\\b",
+"$1German"
+],
+[
+" · tedesco · ",
+" · German · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )olandese\\b",
+"$1Dutch"
+],
+[
+" · olandese · ",
+" · Dutch · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )portoghese\\b",
+"$1Portuguese"
+],
+[
+" · portoghese · ",
+" · Portuguese · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )polacco\\b",
+"$1Polish"
+],
+[
+" · polacco · ",
+" · Polish · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )svedese\\b",
+"$1Swedish"
+],
+[
+" · svedese · ",
+" · Swedish · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )danese\\b",
+"$1Danish"
+],
+[
+" · danese · ",
+" · Danish · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )norvegese\\b",
+"$1Norwegian"
+],
+[
+" · norvegese · ",
+" · Norwegian · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )finlandese\\b",
+"$1Finnish"
+],
+[
+" · finlandese · ",
+" · Finnish · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )ceco\\b",
+"$1Czech"
+],
+[
+" · ceco · ",
+" · Czech · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )ungherese\\b",
+"$1Hungarian"
+],
+[
+" · ungherese · ",
+" · Hungarian · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )rumeno\\b",
+"$1Romanian"
+],
+[
+" · rumeno · ",
+" · Romanian · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )greco\\b",
+"$1Greek"
+],
+[
+" · greco · ",
+" · Greek · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )slovacco\\b",
+"$1Slovak"
+],
+[
+" · slovacco · ",
+" · Slovak · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )bulgaro\\b",
+"$1Bulgarian"
+],
+[
+" · bulgaro · ",
+" · Bulgarian · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )croato\\b",
+"$1Croatian"
+],
+[
+" · croato · ",
+" · Croatian · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )sloveno\\b",
+"$1Slovenian"
+],
+[
+" · sloveno · ",
+" · Slovenian · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )estone\\b",
+"$1Estonian"
+],
+[
+" · estone · ",
+" · Estonian · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )lettone\\b",
+"$1Latvian"
+],
+[
+" · lettone · ",
+" · Latvian · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )lituano\\b",
+"$1Lithuanian"
+],
+[
+" · lituano · ",
+" · Lithuanian · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )italiano\\b",
+"$1Italian"
+],
+[
+" · italiano · ",
+" · Italian · "
+],
+[
+"(Annuncio in |Ad in |English mentioned, |Inglese citato, |The CV in use is in |Originale · |Original · |Tradotto · |Translated · |Modificato · |Edited · )inglese\\b",
+"$1English"
+],
+[
+" · inglese · ",
+" · English · "
+]
+]
+}

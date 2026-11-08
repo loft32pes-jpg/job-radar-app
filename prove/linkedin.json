@@ -1,0 +1,17 @@
+{
+ "when": "2026-10-07 17:21:30 UTC",
+ "searches_ok": 36,
+ "searches": 36,
+ "ads_found": 359,
+ "ads_read": 245,
+ "ads_with_text": 245,
+ "blocks_429": 1,
+ "stopped_by_linkedin": false,
+ "seconds_search": 28,
+ "seconds_total": 243,
+ "reads_per_minute": 68,
+ "final_gap": 1.0,
+ "log": [
+  "  LinkedIn chiede di rallentare: pausa di 20 secondi"
+ ]
+}

@@ -1,0 +1,32 @@
+name: Prova LinkedIn
+# Verifica se LinkedIn risponde dai server di GitHub. Parte a mano o quando cambia lo script di prova.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "engine/ci_linkedin_test.py"
+      - ".github/workflows/prova-linkedin.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  prova:
+    if: github.repository == 'loft32pes-jpg/job-radar-app'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Prova LinkedIn
+        run: python engine/ci_linkedin_test.py
+      - name: Salva il risultato nel repo
+        if: always()
+        run: |
+          git config user.name "job-radar-bot"
+          git config user.email "job-radar-bot@users.noreply.github.com"
+          git add prove/linkedin.json || true
+          git commit -m "Risultato prova LinkedIn" || echo "niente da salvare"
+          git push || true

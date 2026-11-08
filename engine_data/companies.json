@@ -1,0 +1,308 @@
+[
+ {
+  "name": "GitLab",
+  "ats": "greenhouse",
+  "slug": "gitlab",
+  "domain": "gitlab.com"
+ },
+ {
+  "name": "Datadog",
+  "ats": "greenhouse",
+  "slug": "datadog",
+  "domain": "datadoghq.com"
+ },
+ {
+  "name": "Elastic",
+  "ats": "greenhouse",
+  "slug": "elastic",
+  "domain": "elastic.co"
+ },
+ {
+  "name": "Cloudflare",
+  "ats": "greenhouse",
+  "slug": "cloudflare",
+  "domain": "cloudflare.com"
+ },
+ {
+  "name": "Databricks",
+  "ats": "greenhouse",
+  "slug": "databricks",
+  "domain": "databricks.com"
+ },
+ {
+  "name": "MongoDB",
+  "ats": "greenhouse",
+  "slug": "mongodb",
+  "domain": "mongodb.com"
+ },
+ {
+  "name": "Twilio",
+  "ats": "greenhouse",
+  "slug": "twilio",
+  "domain": "twilio.com"
+ },
+ {
+  "name": "Okta",
+  "ats": "greenhouse",
+  "slug": "okta",
+  "domain": "okta.com"
+ },
+ {
+  "name": "Figma",
+  "ats": "greenhouse",
+  "slug": "figma",
+  "domain": "figma.com"
+ },
+ {
+  "name": "Stripe",
+  "ats": "greenhouse",
+  "slug": "stripe",
+  "domain": "stripe.com"
+ },
+ {
+  "name": "N26",
+  "ats": "greenhouse",
+  "slug": "n26",
+  "domain": "n26.com"
+ },
+ {
+  "name": "GetYourGuide",
+  "ats": "greenhouse",
+  "slug": "getyourguide",
+  "domain": "getyourguide.com"
+ },
+ {
+  "name": "Trustpilot",
+  "ats": "greenhouse",
+  "slug": "trustpilot",
+  "domain": "trustpilot.com"
+ },
+ {
+  "name": "Deliveroo",
+  "ats": "greenhouse",
+  "slug": "deliveroo",
+  "domain": "deliveroo.co.uk"
+ },
+ {
+  "name": "Monzo",
+  "ats": "greenhouse",
+  "slug": "monzo",
+  "domain": "monzo.com"
+ },
+ {
+  "name": "Adyen",
+  "ats": "greenhouse",
+  "slug": "adyen",
+  "domain": "adyen.com"
+ },
+ {
+  "name": "SumUp",
+  "ats": "greenhouse",
+  "slug": "sumup",
+  "domain": "sumup.com"
+ },
+ {
+  "name": "Doctolib",
+  "ats": "greenhouse",
+  "slug": "doctolib",
+  "domain": "doctolib.fr"
+ },
+ {
+  "name": "Dataiku",
+  "ats": "greenhouse",
+  "slug": "dataiku",
+  "domain": "dataiku.com"
+ },
+ {
+  "name": "Algolia",
+  "ats": "greenhouse",
+  "slug": "algolia",
+  "domain": "algolia.com"
+ },
+ {
+  "name": "Intercom",
+  "ats": "greenhouse",
+  "slug": "intercom",
+  "domain": "intercom.com"
+ },
+ {
+  "name": "Asana",
+  "ats": "greenhouse",
+  "slug": "asana",
+  "domain": "asana.com"
+ },
+ {
+  "name": "Airtable",
+  "ats": "greenhouse",
+  "slug": "airtable",
+  "domain": "airtable.com"
+ },
+ {
+  "name": "Braze",
+  "ats": "greenhouse",
+  "slug": "braze",
+  "domain": "braze.com"
+ },
+ {
+  "name": "Fivetran",
+  "ats": "greenhouse",
+  "slug": "fivetran",
+  "domain": "fivetran.com"
+ },
+ {
+  "name": "Grafana Labs",
+  "ats": "greenhouse",
+  "slug": "grafanalabs",
+  "domain": "grafana.com"
+ },
+ {
+  "name": "OneTrust",
+  "ats": "greenhouse",
+  "slug": "onetrust",
+  "domain": "onetrust.com"
+ },
+ {
+  "name": "Bitpanda",
+  "ats": "greenhouse",
+  "slug": "bitpanda",
+  "domain": "bitpanda.com"
+ },
+ {
+  "name": "Contentful",
+  "ats": "greenhouse",
+  "slug": "contentful",
+  "domain": "contentful.com"
+ },
+ {
+  "name": "Commercetools",
+  "ats": "greenhouse",
+  "slug": "commercetools",
+  "domain": "commercetools.com"
+ },
+ {
+  "name": "Lokalise",
+  "ats": "greenhouse",
+  "slug": "lokalise",
+  "domain": "lokalise.com"
+ },
+ {
+  "name": "Spotify",
+  "ats": "lever",
+  "slug": "spotify",
+  "domain": "spotify.com"
+ },
+ {
+  "name": "Palantir",
+  "ats": "lever",
+  "slug": "palantir",
+  "domain": "palantir.com"
+ },
+ {
+  "name": "Notion",
+  "ats": "ashby",
+  "slug": "notion",
+  "domain": "notion.so"
+ },
+ {
+  "name": "Linear",
+  "ats": "ashby",
+  "slug": "linear",
+  "domain": "linear.app"
+ },
+ {
+  "name": "Synthesia",
+  "ats": "ashby",
+  "slug": "synthesia",
+  "domain": "synthesia.io"
+ },
+ {
+  "name": "Ramp",
+  "ats": "ashby",
+  "slug": "ramp",
+  "domain": "ramp.com"
+ },
+ {
+  "name": "Cohere",
+  "ats": "ashby",
+  "slug": "cohere",
+  "domain": "cohere.com"
+ },
+ {
+  "name": "Supabase",
+  "ats": "ashby",
+  "slug": "supabase",
+  "domain": "supabase.com"
+ },
+ {
+  "name": "Quantexa",
+  "ats": "ashby",
+  "slug": "quantexa",
+  "domain": "quantexa.com"
+ },
+ {
+  "name": "Multiverse",
+  "ats": "ashby",
+  "slug": "multiverse",
+  "domain": "multiverse.io"
+ },
+ {
+  "name": "Celonis",
+  "ats": "greenhouse",
+  "slug": "celonis",
+  "domain": "celonis.com"
+ },
+ {
+  "name": "Mistral AI",
+  "ats": "lever",
+  "slug": "mistral",
+  "domain": "mistral.ai"
+ },
+ {
+  "name": "Preply",
+  "ats": "workable",
+  "slug": "preply",
+  "domain": "preply.com"
+ },
+ {
+  "name": "Experian",
+  "ats": "smartrecruiters",
+  "slug": "Experian",
+  "domain": "experian.com"
+ },
+ {
+  "name": "Endava",
+  "ats": "smartrecruiters",
+  "slug": "Endava",
+  "domain": "endava.com"
+ },
+ {
+  "name": "ServiceNow",
+  "ats": "smartrecruiters",
+  "slug": "ServiceNow",
+  "domain": "servicenow.com"
+ },
+ {
+  "name": "Canva",
+  "ats": "smartrecruiters",
+  "slug": "Canva",
+  "domain": "canva.com"
+ },
+ {
+  "name": "bunq",
+  "ats": "recruitee",
+  "slug": "bunq",
+  "domain": "bunq.com"
+ },
+ {
+  "name": "Personio",
+  "ats": "recruitee",
+  "slug": "personio",
+  "domain": "personio.com"
+ },
+ {
+  "name": "Holded",
+  "ats": "recruitee",
+  "slug": "holded",
+  "domain": "holded.com"
+ }
+]

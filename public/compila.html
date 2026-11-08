@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compila con Job Radar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#0A0F14;--surface:#111A22;--surface2:#16222C;--line:#223140;--text:#E6EDF3;--text2:#A7B5C2;--muted:#8A9BAB;--radar:#36F2A0;--warn:#FFB84D;--bad:#FF8A9B}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 "Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;padding:18px}
+h1{font:700 20px/1.2 "Bricolage Grotesque",system-ui,sans-serif;margin:0 0 6px}
+p{margin:6px 0;color:var(--text2)}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:12px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.row:last-child{border:0}
+.row span:first-child{color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row span:last-child{flex:1.4;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ok{color:var(--radar)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+button{font:inherit;font-weight:600;min-height:46px;width:100%;border-radius:12px;border:0;background:var(--radar);color:#04130C;margin-top:12px;cursor:pointer}
+button.ghost{background:var(--surface2);color:var(--text);border:1px solid var(--line)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--radar);border-right-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<h1>Compila con Job Radar</h1>
+<p id="msg"><span class="spin"></span>Leggo il modulo...</p>
+<div id="out"></div>
+<script src="/compila.js"></script>
+</body>
+</html>

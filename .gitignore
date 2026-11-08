@@ -1,0 +1,20 @@
+# mai nel repo: chiavi, CV, dati personali, risultati
+config.json
+.env
+.env.*
+profilo/
+data/
+__pycache__/
+*.pyc
+*.pdf
+*.docx
+node_modules/
+.vercel/
+dati/
+.lavoro/
+.codici.json
+public/_*
+.vercel-token
+
+.vercel
+.env*

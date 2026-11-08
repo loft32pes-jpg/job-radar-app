@@ -1,0 +1,2017 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark light">
+<title>Job Radar</title>
+<script>try{var jrT=localStorage.getItem("jr-theme");if(jrT)document.documentElement.setAttribute("data-theme",jrT);}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<style>
+:root{
+  --bg:#0A0F14;--surface:#111A22;--surface2:#16222C;--line:#223140;--text:#E6EDF3;--text2:#A7B5C2;--muted:#8A9BAB;
+  --radar:#36F2A0;--radar-text:#36F2A0;--btn-bg:#36F2A0;--btn-hover:#7CFFC6;--btn-text:#04130C;--sel:#10301F;
+  --amber:#FFB84D;--amber-bg:#2A2114;--amber-line:#4A3819;--ok:#36F2A0;--ok-bg:#0F2A1E;--sweep:.16;--shadow:rgba(0,0,0,.45);
+  --side:#070B0F;--side-text:#A7B5C2;--side-line:#1B2733;--side-accent:#36F2A0;--glow:0 0 0 1px rgba(54,242,160,.35),0 8px 30px rgba(54,242,160,.12);
+  --c-tech_sales:#36F2A0;--c-bd:#5AA9FF;--c-sales:#FFB84D;--c-change:#C58CFF;--c-affini:#FF8A9B;--c-extra:#4FD8E0;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme=dark]){
+  --bg:#F3F6F4;--surface:#FFFFFF;--surface2:#EEF3F0;--line:#DCE5E0;--text:#0B1A13;--text2:#3F5348;--muted:#566A5F;
+  --radar:#12A869;--radar-text:#0A7A4B;--btn-bg:#0B8A57;--btn-hover:#0A7A4B;--btn-text:#FFFFFF;--sel:#DDF3E6;
+  --amber:#9A5B00;--amber-bg:#FFF3DC;--amber-line:#F0D7A6;--ok:#0A7A4B;--ok-bg:#DDF3E6;--sweep:.22;--shadow:rgba(20,40,30,.18);
+  --side:#0A0F14;--glow:0 0 0 1px rgba(11,138,87,.4),0 8px 26px rgba(11,138,87,.14);
+  --c-tech_sales:#0E9F62;--c-bd:#1F6FD1;--c-sales:#C27700;--c-change:#7C3AED;--c-affini:#D0344A;--c-extra:#0E8A93;
+}}
+:root[data-theme=light]{
+  --bg:#F3F6F4;--surface:#FFFFFF;--surface2:#EEF3F0;--line:#DCE5E0;--text:#0B1A13;--text2:#3F5348;--muted:#566A5F;
+  --radar:#12A869;--radar-text:#0A7A4B;--btn-bg:#0B8A57;--btn-hover:#0A7A4B;--btn-text:#FFFFFF;--sel:#DDF3E6;
+  --amber:#9A5B00;--amber-bg:#FFF3DC;--amber-line:#F0D7A6;--ok:#0A7A4B;--ok-bg:#DDF3E6;--sweep:.22;--shadow:rgba(20,40,30,.18);
+  --side:#0A0F14;--glow:0 0 0 1px rgba(11,138,87,.4),0 8px 26px rgba(11,138,87,.14);
+  --c-tech_sales:#0E9F62;--c-bd:#1F6FD1;--c-sales:#C27700;--c-change:#7C3AED;--c-affini:#D0344A;--c-extra:#0E8A93;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:0 40px 72px}
+.display{font-family:"Bricolage Grotesque","Segoe UI Variable Display",system-ui,sans-serif}
+button{font:inherit;color:inherit}
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--radar);outline-offset:3px}
+[hidden]{display:none!important}
+
+/* intestazione */
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px 0}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:22px;letter-spacing:-.01em}
+.brand svg .ring{stroke:var(--radar)}.brand svg .dot{fill:var(--radar)}
+.hright{display:flex;align-items:center;gap:18px}
+.scan{font-size:14px;color:var(--muted);text-align:right}.scan b{color:var(--text);font-weight:600}
+.refresh{display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:transparent;border:1px solid var(--radar);color:var(--radar-text);font-weight:600;font-size:14px;padding:9px 16px;min-height:44px;border-radius:99px;transition:background .15s,color .15s}
+.refresh:hover{background:var(--btn-bg);color:var(--btn-text)}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:40px;align-items:center;padding:12px 0 36px}
+.eyebrow{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--radar-text);font-weight:600}
+h1{margin:12px 0 16px;font-weight:800;font-size:clamp(42px,6.4vw,72px);line-height:.98;letter-spacing:-.03em}
+h1 em{font-style:normal;color:var(--radar-text)}
+.lead{margin:0 0 22px;max-width:540px;font-size:18px;color:var(--text2)}
+.tiles{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 20px;min-width:118px}
+.tile .n{font-weight:800;font-size:32px;line-height:1}.tile .l{font-size:13px;color:var(--muted);margin-top:6px}
+.sources{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:13px;color:var(--text2)}
+.sources span{display:inline-flex;align-items:center;gap:7px}
+.sources i{width:7px;height:7px;border-radius:50%;background:var(--radar);display:inline-block}
+.sources .bad{color:var(--amber)}.sources .bad i{background:var(--amber)}
+.radar{display:flex;justify-content:center}.radar svg{width:100%;max-width:330px;height:auto}
+.radar .grid{stroke:var(--line);fill:none;stroke-width:1.5}
+.radar .sweep{transform-origin:180px 180px;animation:sweep 5s linear infinite}
+.radar .wedge{fill:var(--radar);fill-opacity:var(--sweep)}.radar .beam{stroke:var(--radar);stroke-width:2.5;stroke-linecap:round}
+.radar .blip{animation:blip 5s ease-out infinite}
+.radar .b2{animation-delay:1.4s}.radar .b3{animation-delay:2.6s}.radar .b4{animation-delay:3.7s}
+@keyframes sweep{to{transform:rotate(360deg)}}
+@keyframes blip{0%{opacity:1}70%,100%{opacity:.3}}
+
+/* filtri */
+.filters{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px 24px;display:flex;flex-direction:column;gap:14px;margin-bottom:28px}
+.frow{display:flex;align-items:center;gap:10px 14px}
+.frow .lab{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);width:72px;flex:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.chip{cursor:pointer;font-size:14px;padding:8px 15px;min-height:40px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--text2);transition:border-color .15s,color .15s;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.chip:hover{border-color:var(--radar);color:var(--text)}
+.chip[aria-pressed=true]{background:var(--btn-bg);border-color:var(--btn-bg);color:var(--btn-text);font-weight:600}
+.chip small{opacity:.7;font-size:12px}
+.chip .sw{width:10px;height:10px;border-radius:50%;flex:none}
+.chip[aria-pressed=true] .sw{box-shadow:0 0 0 2px var(--btn-text)}
+.fbottom{display:flex;align-items:center;gap:14px 28px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px}
+.slider{display:flex;align-items:center;gap:14px}
+.slider output{font-weight:800;font-size:20px;min-width:28px;text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;width:200px;height:6px;border-radius:99px;background:var(--line);cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--text);border:3px solid var(--bg)}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--text);border:3px solid var(--bg)}
+select{font:inherit;font-size:14px;color:var(--text);background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:40px}
+.grp{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.grp.push{margin-left:auto}
+.clear{cursor:pointer;background:none;border:0;color:var(--radar-text);font-weight:600;font-size:14px;padding:8px 4px;min-height:40px}
+
+/* mappa */
+.sechead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:16px}
+h2{margin:0;font-weight:800;font-size:28px;letter-spacing:-.01em}
+.sechead span{font-size:14px;color:var(--muted)}
+.mapsec{margin-bottom:44px}
+.mapgrid{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;align-items:stretch}
+.mapbox{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;height:min(78vh,760px);min-height:420px}
+.mapbox svg#map{width:100%;height:100%;display:block;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+.mapbox svg#map.drag{cursor:grabbing}
+.land{fill:var(--surface2);stroke:var(--line);stroke-width:.8;vector-effect:non-scaling-stroke;transition:fill .15s}
+.land.has{fill:color-mix(in srgb,var(--radar) 10%,var(--surface2))}
+.land.sel{fill:color-mix(in srgb,var(--radar) 24%,var(--surface2))}
+.dot{cursor:pointer;stroke:var(--bg);stroke-width:1.6;vector-effect:non-scaling-stroke}
+.dot.approx{fill:var(--surface)!important;stroke-width:2.4;stroke-dasharray:3 2}
+.dot.on{stroke:var(--text);stroke-width:3}
+.dot:focus-visible{outline:none;stroke:var(--text);stroke-width:3}
+.clabel{font-family:"Hanken Grotesk",system-ui,sans-serif;font-weight:700;fill:var(--text);paint-order:stroke;stroke:var(--surface);stroke-linejoin:round;cursor:pointer}
+.clabel .cnt{fill:var(--muted);font-weight:600}
+.zoom{position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:6px}
+.zoom button{width:42px;height:42px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:20px;line-height:1;cursor:pointer}
+.zoom button:hover{border-color:var(--radar)}
+.maplegend{position:absolute;left:12px;bottom:12px;background:color-mix(in srgb,var(--surface) 92%,transparent);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--text2);display:flex;flex-direction:column;gap:5px;max-width:calc(100% - 24px)}
+.maplegend span{display:inline-flex;align-items:center;gap:8px}
+.maplegend i{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+.maplegend .ap{border:2px dashed var(--muted);background:transparent}
+.maphint{position:absolute;left:12px;top:12px;font-size:12px;color:var(--muted);background:color-mix(in srgb,var(--surface) 90%,transparent);border-radius:8px;padding:6px 10px;max-width:60%}
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 18px}
+.panel h3{margin:0 0 10px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.bar{display:grid;grid-template-columns:1fr auto;gap:3px 10px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:6px 0;cursor:pointer}
+.bar:hover .nm{color:var(--radar-text)}
+.bar .nm{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar .n{font-weight:800;font-size:14px}
+.bar i{grid-column:1/-1;display:block;height:5px;border-radius:99px;background:var(--line);position:relative;overflow:hidden}
+.bar i b{position:absolute;left:0;top:0;bottom:0;background:var(--radar);border-radius:99px}
+.bar[aria-pressed=true] .nm{color:var(--radar-text);font-weight:700}
+.nopos{font-size:12px;color:var(--muted);margin:0}
+
+/* scheda riassuntiva (dalla mappa) */
+.pop{position:absolute;width:380px;max-height:calc(100% - 24px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--fam,var(--radar));border-radius:16px;padding:18px;box-shadow:0 18px 50px var(--shadow);z-index:5}
+.pop .x{position:absolute;top:8px;right:8px;width:38px;height:38px;border:0;background:transparent;color:var(--muted);font-size:22px;cursor:pointer;border-radius:8px}
+.pop .x:hover{color:var(--text);background:var(--surface2)}
+.ph{display:flex;gap:14px;align-items:flex-start;padding-right:78px}
+.logo{width:52px;height:52px;border-radius:12px;flex:none;background:#fff;border:1px solid var(--line);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.logo img{width:100%;height:100%;object-fit:contain;padding:6px}
+.logo.mono{background:color-mix(in srgb,var(--fam,var(--radar)) 22%,var(--surface2));color:var(--text);font-weight:800;font-size:18px}
+.pop .co{font-weight:700;font-size:15px}
+.pop h4{margin:2px 0 0;font-size:19px;line-height:1.2;font-weight:700;overflow-wrap:anywhere}
+.pop .pl{font-size:13px;color:var(--text2);margin-top:4px}
+.famtag{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--text2)}
+.famtag i{width:9px;height:9px;border-radius:50%}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;margin:14px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.fact .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.fact .v{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.fact.score .v{font-size:20px;font-weight:800}
+.blk{margin:0 0 12px}
+.blk .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.blk ul{margin:0;padding-left:18px;font-size:14px}
+.blk p{margin:0;font-size:14px;color:var(--text2)}
+.pa{display:flex;gap:8px;margin-top:14px}
+.pa a,.pa button{flex:1;text-align:center;text-decoration:none;font-weight:700;font-size:14px;border-radius:10px;padding:10px 8px;min-height:46px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.pa .go{background:transparent;border:1px solid var(--radar);color:var(--radar-text)}
+.pa .go:hover{background:var(--surface2)}
+.pa .ext{background:var(--btn-bg);color:var(--btn-text);border:1px solid var(--btn-bg)}
+.pa .ext:hover{background:var(--btn-hover)}
+
+/* elenco */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:14px;transition:border-color .18s,transform .18s;scroll-margin:90px}
+.card:hover{border-color:var(--fam);transform:translateY(-2px)}
+.top{display:flex;gap:14px;align-items:flex-start}
+.top .info{min-width:0;flex-grow:1}
+.top .co{font-size:14px;color:var(--text2);font-weight:600}
+.title{margin:2px 0 0;font-weight:600;font-size:20px;line-height:1.2;overflow-wrap:anywhere}
+.top .pl{font-size:14px;color:var(--muted);margin-top:3px}
+.score{position:relative;width:58px;height:58px;flex:none}
+.score svg{width:58px;height:58px}
+.score .track{stroke:var(--line);fill:none;stroke-width:5}
+.score .val{fill:none;stroke:var(--fam);stroke-width:5;stroke-linecap:round;transform:rotate(-90deg);transform-origin:32px 32px}
+.score b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px}
+.pills{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--text2)}
+.pills span b{color:var(--muted);font-weight:500}
+.tags{display:flex;gap:7px;flex-wrap:wrap}
+.tag{font-size:13px;padding:4px 10px;border-radius:99px;background:var(--surface2);color:var(--text2);border:1px solid var(--line)}
+.tag.sk{background:transparent}
+.tag.warn{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-line)}
+.foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:14px;border-top:1px solid var(--line)}
+.meta{font-size:13px;color:var(--muted)}
+.open{display:inline-flex;align-items:center;gap:8px;background:var(--btn-bg);color:var(--btn-text);font-weight:700;text-decoration:none;border-radius:10px;padding:10px 16px;min-height:44px;transition:background .15s;white-space:nowrap}
+.open:hover{background:var(--btn-hover)}
+.more{cursor:pointer;background:none;border:0;color:var(--radar-text);font-weight:600;font-size:14px;padding:0;min-height:32px;text-align:left}
+.empty{grid-column:1/-1;text-align:center;color:var(--text2);padding:48px 16px;background:var(--surface);border:1px dashed var(--line);border-radius:18px}
+.empty b{display:block;font-size:20px;color:var(--text);margin-bottom:6px}
+.card.flash{animation:flash 1.9s ease}
+@keyframes flash{0%,100%{box-shadow:0 0 0 0 transparent}15%,65%{box-shadow:0 0 0 4px var(--fam)}}
+footer{margin-top:48px;text-align:center;font-size:13px;color:var(--muted)}
+
+/* CV */
+.cvsec{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 24px;margin-bottom:28px}
+.cvhead{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.cvhead h2{font-size:22px}
+.cvhead p{margin:4px 0 0;color:var(--text2);font-size:14px;max-width:640px}
+.cvact{display:flex;gap:10px;flex-wrap:wrap}
+.btn2{cursor:pointer;background:transparent;border:1px solid var(--radar);color:var(--radar-text);font-weight:600;font-size:14px;padding:9px 16px;min-height:44px;border-radius:10px}
+.btn2:hover{background:var(--surface2)}
+.btn2.solid{background:var(--btn-bg);color:var(--btn-text);border-color:var(--btn-bg)}
+.btn2.solid:hover{background:var(--btn-hover)}
+.btn2.quiet{border-color:var(--line);color:var(--text2)}
+.cvgrid{display:grid;grid-template-columns:220px minmax(0,1fr) minmax(0,1.1fr);gap:24px;margin-top:20px;padding-top:20px;border-top:1px solid var(--line)}
+.cvscore .big{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:56px;line-height:1}
+.cvscore .big small{font-size:20px;color:var(--muted);font-weight:600}
+.cvscore p{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.cvfacts{display:flex;flex-direction:column;gap:8px;font-size:14px}
+.cvfacts b{color:var(--muted);font-weight:500}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.checks li{display:grid;grid-template-columns:20px 1fr;gap:8px}
+.checks .mk{font-weight:800}
+.checks .ok .mk{color:var(--radar-text)}.checks .no .mk{color:var(--amber)}
+.checks .fix{grid-column:2;color:var(--text2);font-size:13px}
+.cvpaste{margin-top:14px}
+.cvpaste textarea{width:100%;min-height:120px;background:var(--surface2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:14px}
+.cvmsg{margin-top:10px;font-size:14px;color:var(--amber)}
+.cvbadge{cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--line);border-radius:99px;padding:5px 12px;font-size:13px;font-weight:700;min-height:36px}
+.cvbadge:hover{border-color:var(--radar)}
+.cvbadge b{color:var(--muted);font-weight:500}
+.orig{font-size:12px;color:var(--muted);margin-top:2px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;z-index:80}
+.sheet{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px;width:min(760px,100%);box-shadow:0 20px 60px var(--shadow)}
+.sheet .x{position:absolute;top:10px;right:10px;width:40px;height:40px;border:0;background:transparent;color:var(--muted);font-size:24px;cursor:pointer;border-radius:8px}
+.sheet h3{margin:0 40px 2px 0;font-size:22px}
+.sheet .sub{color:var(--text2);font-size:14px;margin:0 0 18px}
+.mscore{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
+.mscore .big{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:54px;line-height:1}
+.crit{display:grid;grid-template-columns:190px 1fr 52px;gap:6px 12px;align-items:center;margin-bottom:10px;font-size:14px}
+.crit .track{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.crit .track b{display:block;height:100%;background:var(--radar);border-radius:99px}
+.crit .pt{text-align:right;font-weight:700}
+.crit .note{grid-column:1/-1;color:var(--text2);font-size:13px;margin-top:-2px}
+.sheet h4{margin:20px 0 8px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.sheet ul{margin:0;padding-left:18px;font-size:14px}.sheet li{margin-bottom:6px}
+.atsnote{font-size:14px;color:var(--text2);background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0}
+.deep{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+.deep pre{white-space:pre-wrap;font:14px/1.55 "Hanken Grotesk",system-ui,sans-serif;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0 0}
+.deep small{display:block;color:var(--muted);font-size:12px;margin-top:8px}
+@media (max-width:900px){.cvgrid{grid-template-columns:1fr}.crit{grid-template-columns:1fr 52px}.crit .track{grid-column:1/-1;order:3}}
+
+.cvfilters{display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--line);padding-top:16px}
+.cvfhead{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--radar-text);font-weight:600}
+.hub{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.hubrow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.hubrow.on{border-color:var(--radar)}
+.hubrow .nm{font-weight:600;overflow-wrap:anywhere}
+.hubrow .mt{font-size:13px;color:var(--muted);margin-top:2px}
+.hubrow .inuse{display:inline-block;font-size:12px;font-weight:700;color:var(--btn-text);background:var(--btn-bg);border-radius:99px;padding:2px 10px;margin-left:8px}
+.hubrow .acts{display:flex;gap:8px;flex-wrap:wrap}
+.hubrow .btn2{min-height:40px;padding:7px 13px;font-size:13px;text-decoration:none;display:inline-flex;align-items:center}
+.sheet.wide{width:min(1080px,100%)}
+.trrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+.trrow .src{font-size:14px;color:var(--text2);background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;overflow-wrap:anywhere}
+.trrow textarea{width:100%;min-height:44px;resize:vertical;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:14px}
+.trhead{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px}
+.trfoot{position:sticky;bottom:-26px;background:var(--surface);padding:14px 0 4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:10px}
+@media (max-width:760px){.trrow,.trhead{grid-template-columns:1fr}}
+
+/* viste, preferiti e candidature */
+.views{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.vtab{cursor:pointer;display:inline-flex;align-items:center;gap:9px;font-weight:600;font-size:15px;padding:10px 18px;min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text2);transition:border-color .15s,color .15s}
+.vtab:hover{border-color:var(--radar);color:var(--text)}
+.vtab[aria-pressed=true]{background:var(--btn-bg);border-color:var(--btn-bg);color:var(--btn-text)}
+.vtab small{font-size:13px;font-weight:700;opacity:.75}
+.views .grp{margin-left:auto}
+.star{cursor:pointer;flex:none;width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,transform .15s}
+.star:hover{border-color:var(--amber);color:var(--amber)}
+.star svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.star[aria-pressed=true]{color:var(--amber);border-color:var(--amber);background:var(--amber-bg)}
+.star[aria-pressed=true] svg{fill:currentColor}
+.star:active{transform:scale(.92)}
+.star:disabled{cursor:default;opacity:.5}
+.newtag{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--btn-text);background:var(--btn-bg);border-radius:99px;padding:2px 9px}
+.trk{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;align-items:center;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.trk label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.trk select{min-height:38px;padding:6px 10px;background:var(--surface)}
+.trk textarea{width:100%;min-height:38px;resize:vertical;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:14px}
+.trk .when{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.trk .when.warn{color:var(--amber);font-weight:600}
+.facts2{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hide{cursor:pointer;background:none;border:0;color:var(--muted);font-size:13px;padding:6px 2px;min-height:36px;text-decoration:underline;text-underline-offset:3px}
+.hide:hover{color:var(--text)}
+.morebtn{grid-column:1/-1;justify-self:center;margin-top:6px}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--text);color:var(--bg);font-weight:600;font-size:14px;padding:12px 18px;border-radius:12px;box-shadow:0 12px 40px var(--shadow);z-index:90;max-width:calc(100vw - 32px)}
+
+/* avanzamento */
+.progress{position:fixed;right:24px;bottom:24px;width:min(380px,calc(100vw - 32px));background:var(--surface);border:1px solid var(--radar);border-radius:16px;padding:18px 20px;box-shadow:0 12px 40px var(--shadow);z-index:50}
+.progress h4{margin:0 0 4px;font-size:16px;display:flex;align-items:center;gap:10px}
+.progress p{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.progress pre{margin:0;font:12px/1.5 ui-monospace,Consolas,monospace;color:var(--text2);white-space:pre-wrap;max-height:120px;overflow:hidden}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--radar);animation:rot .8s linear infinite;flex:none}
+@keyframes rot{to{transform:rotate(360deg)}}
+.progress.err{border-color:var(--amber)}
+
+@media (prefers-reduced-motion:reduce){.radar .sweep,.radar .blip,.spin{animation:none}.card.flash{animation:none;box-shadow:0 0 0 4px var(--fam)}}
+@media (max-width:1020px){.mapgrid{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}}
+@media (max-width:760px){
+  .wrap{padding:0 16px 48px}
+  header{padding:16px 0 4px}.brand{font-size:19px}.brand svg{width:26px;height:26px}
+  .hright{gap:10px}.scan{font-size:12px}.refresh{padding:8px 12px;font-size:13px}
+  .hero{grid-template-columns:1fr;gap:0;padding:12px 0 22px;position:relative;overflow:hidden}
+  .radar{position:absolute;right:-120px;top:-6px;width:290px;opacity:.45;pointer-events:none}
+  .hero>div:first-child{position:relative;z-index:1}
+  .lead{font-size:15px;max-width:290px}.tiles{flex-wrap:nowrap;gap:10px}.tile{padding:12px 14px;min-width:0;flex:1}.tile .n{font-size:26px}.tile .l{font-size:12px}
+  .filters{padding:16px;border-radius:16px;overflow:hidden}
+  .frow{align-items:flex-start}.frow .lab{display:none}
+  .chips{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px;padding:0 16px;scrollbar-width:none;width:calc(100% + 32px)}
+  .chips::-webkit-scrollbar{display:none}.chip{flex:none;min-height:44px}
+  .slider{width:100%}input[type=range]{flex-grow:1;width:auto;min-width:0}.grp.push{margin-left:0}.views .grp{margin-left:0;width:100%}.vtab{flex:1;justify-content:center;padding:10px 12px;font-size:14px}
+  h2{font-size:22px}
+  .mapbox{height:72vh;min-height:360px}
+  .side{grid-template-columns:1fr}
+  .maplegend{font-size:11px;padding:8px 10px}
+  .pop{position:fixed;left:0!important;right:0;bottom:0;top:auto!important;width:auto;max-height:82vh;border-radius:18px 18px 0 0;z-index:60}
+  .grid{grid-template-columns:1fr;gap:14px}.card{padding:18px;border-radius:16px}.title{font-size:18px}
+  .score,.score svg{width:50px;height:50px}.score b{font-size:17px}
+}
+
+/* ===== impianto: barra laterale + area di lavoro ===== */
+body{font-size:15px;line-height:1.45}
+.app{display:flex;min-height:100vh}
+.sidebar{flex:none;width:236px;background:var(--side);color:var(--side-text);padding:22px 14px;display:flex;flex-direction:column;gap:26px;position:sticky;top:0;height:100vh;overflow:auto}
+.sidebar .brand{color:#E9EDF0;font-size:20px;padding:0 8px}
+.sidebar .brand svg .ring{stroke:#36F2A0}.sidebar .brand svg .dot{fill:#36F2A0}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav .lab{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A96A3;padding:0 12px 6px}
+.vtab{width:100%;justify-content:space-between;border:0;background:transparent;color:var(--side-text);font-weight:500;font-size:15px;padding:0 12px;min-height:44px;border-radius:10px}
+.vtab:hover{background:#111A22;color:#FFFFFF;border-color:transparent}
+.vtab[aria-pressed=true]{background:#36F2A0;color:#04130C;font-weight:700}
+.vtab small{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:500;font-size:13px;opacity:.9}
+.sidebar select{width:100%;background:#1A222C;border-color:var(--side-line);color:#E9EDF0;margin-top:2px}
+.sfoot{margin-top:auto;border-top:1px solid var(--side-line);padding:16px 8px 0;display:flex;flex-direction:column;gap:10px}
+.scan{text-align:left;font-size:12px;color:#8A96A3}.scan b{display:block;color:#E9EDF0;font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:500;font-size:13px;margin-top:2px}
+.refresh{justify-content:center;border-radius:99px;border-color:#36F2A0;color:#36F2A0}
+.refresh:hover{background:#36F2A0;border-color:#36F2A0;color:#04130C}
+.main{flex:1;min-width:0;padding:26px 32px 56px;display:flex;flex-direction:column;gap:18px}
+.tophead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 32px}
+.eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px;letter-spacing:0;text-transform:none;color:var(--muted);font-weight:400}
+h1{margin:6px 0 0;font-size:clamp(28px,3.4vw,40px);line-height:1.05;letter-spacing:-.02em}
+h1 em{color:var(--radar-text)}
+.tiles{gap:28px;margin:0;flex-wrap:wrap}
+.tile{background:none;border:0;border-radius:0;padding:0;min-width:0}
+.tile .n{font-size:24px;font-weight:700}.tile .l{margin-top:2px}
+.sources{font-size:12px;color:var(--muted);gap:4px 14px}
+.sources i{background:var(--ok)}
+.filters{border-radius:14px;padding:0;margin:0;gap:0;display:block}
+.filters>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:12px 16px;min-height:48px;font-weight:600}
+.filters>summary::-webkit-details-marker{display:none}
+.filters>summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s}
+.filters[open]>summary::before{transform:rotate(45deg)}
+.filters>summary .act{font-weight:400;font-size:13px;color:var(--muted)}
+.fbody{display:flex;flex-direction:column;gap:10px;padding:4px 16px 14px}
+.frow .lab{width:64px;font-size:11px}
+.chips{gap:6px}
+.chip{font-size:13px;padding:5px 11px;min-height:34px;border-radius:9px;background:var(--surface)}
+.chip[aria-pressed=true]{background:var(--sel);border-color:var(--radar);color:var(--radar-text)}
+.chip[aria-pressed=true] .sw{box-shadow:none}
+.fbottom{padding-top:12px;gap:10px 22px}
+.slider output{font-size:16px}
+input[type=range]::-webkit-slider-thumb{background:var(--radar);border-color:var(--surface)}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,460px);gap:20px;align-items:start}
+.sechead{margin-bottom:10px;align-items:center}
+h2{font-size:20px}
+.grid{grid-template-columns:1fr;gap:8px}
+.row{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;gap:14px;align-items:center;cursor:pointer;scroll-margin:90px;transition:border-color .15s}
+.row:hover{border-color:var(--muted)}
+.row.on{border-color:var(--radar);box-shadow:0 0 0 2px color-mix(in srgb,var(--radar) 22%,transparent)}
+.row .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.row .tl{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.rt{background:none;border:0;padding:0;text-align:left;font-weight:700;font-size:16px;line-height:1.25;color:var(--text);cursor:pointer;overflow-wrap:anywhere}
+.row .co{font-size:14px;color:var(--text2)}
+.row .pills{font-size:13px;color:var(--muted);gap:3px 12px}
+.row .pills .wn{color:var(--amber);font-weight:600}
+.row .sc{flex:none;text-align:right;min-width:44px}
+.row .sc b{display:block;font-weight:800;font-size:24px;line-height:1}
+.row .sc small{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.logo{border-radius:10px}
+.newtag{color:var(--ok);background:var(--ok-bg);border-radius:6px;font-weight:600;padding:2px 7px}
+.sttag{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--radar-text);background:var(--sel);border-radius:6px;padding:2px 7px}
+.star{border-radius:10px}
+.sidecol{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;display:flex;flex-direction:column;gap:12px}
+.mapbox{height:290px;min-height:0;border-radius:14px;flex:none}
+.detail,.maplegend{flex:none}
+.chip.more{border-style:dashed;color:var(--radar-text)}
+.zoom{top:8px;right:8px;gap:4px}.zoom button{width:36px;height:36px;border-radius:8px;font-size:17px}
+.mapcap{position:absolute;left:10px;top:10px;font-size:12px;color:var(--muted);background:color-mix(in srgb,var(--surface) 90%,transparent);border-radius:8px;padding:4px 9px}
+.maplegend{position:static;flex-direction:row;flex-wrap:wrap;gap:4px 14px;border:0;background:none;padding:0 2px;max-width:none}
+.detail{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.dbody .ph{padding-right:0}
+.dt{margin:2px 0 0;font-size:22px;line-height:1.15;font-weight:800;letter-spacing:-.01em;overflow-wrap:anywhere}
+.dbody .co{font-weight:600;font-size:14px;color:var(--text2)}
+.dbody .pl{font-size:13px;color:var(--muted);margin-top:4px}
+.dbody .ph>div:nth-child(2){flex:1;min-width:0}
+.meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.meter{background:var(--surface2);border:0;border-radius:12px;padding:12px 14px;text-align:left;color:var(--text)}
+button.meter{cursor:pointer}button.meter:hover{outline:1px solid var(--radar)}
+.meter .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.meter .v{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:32px;line-height:1.1}
+.meter i{display:block;height:6px;border-radius:99px;background:var(--line);margin-top:6px;overflow:hidden}
+.meter i b{display:block;height:100%;background:var(--radar);border-radius:99px}
+.dbody .facts{margin:0;padding:0;border:0;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+.dbody .blk{margin:0}
+.tag{border-radius:8px}
+.tag.ok{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+.acts{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.acts .open{flex:1 1 160px;justify-content:center}
+.acts .btn2{flex:1 1 140px}
+.dempty{color:var(--muted);text-align:center;padding:36px 12px}
+.cvsec{margin:0;border-radius:14px}
+.card,.empty{border-radius:14px}
+.sheet .detailhost{display:flex;flex-direction:column;gap:16px;padding-top:8px}
+footer{margin-top:24px;text-align:left}
+@media (max-width:1180px){.split{grid-template-columns:1fr}.sidecol{position:static;max-height:none;order:-1}.detail{display:none}}
+@media (max-width:860px){
+  .app{flex-direction:column}
+  .sidebar{position:static;width:auto;height:auto;padding:14px 16px;gap:12px}
+  .nav{flex-direction:row;flex-wrap:wrap}.nav .lab{display:none}.vtab{width:auto;flex:1 1 auto}
+  .sfoot{margin:0;border:0;padding:0;flex-direction:row;align-items:center;justify-content:space-between}
+  .main{padding:18px 16px 40px}
+  .chips{flex-wrap:wrap;overflow:visible;margin:0;padding:0;width:auto}
+  .row{flex-wrap:wrap}.row .info{flex-basis:calc(100% - 60px)}
+}
+
+/* ===== mappa dettagliata ===== */
+.mapbox{height:380px}
+#lmap{position:absolute;inset:0;z-index:0;background:var(--surface2);font:inherit}
+.mapcap{z-index:600;pointer-events:none}
+.mapx{position:absolute;right:10px;bottom:22px;z-index:600;cursor:pointer;min-height:36px;padding:0 12px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:13px;font-weight:600;box-shadow:0 2px 8px var(--shadow)}
+.mapx:hover{border-color:var(--radar)}
+.ldot{display:block;width:18px;height:18px;border-radius:50%;background:var(--c);border:2.5px solid #FFFFFF;box-shadow:0 1px 4px rgba(0,0,0,.45);box-sizing:border-box}
+.ldot.approx{background:#FFFFFF;border:3px dashed var(--c)}
+.ldot.on{outline:3px solid var(--text);outline-offset:2px;transform:scale(1.25)}
+.lclu{display:flex;align-items:center;justify-content:center;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4);position:relative;font-weight:700;font-size:13px;color:#10161D;font-family:"Hanken Grotesk",system-ui,sans-serif}
+.lclu::before{content:"";position:absolute;inset:5px;border-radius:50%;background:#FFFFFF}
+.lclu b{position:relative}
+.leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.9) saturate(.8)}
+@media (prefers-color-scheme:light){:root:not([data-theme=dark]) .leaflet-tile-pane{filter:none}}
+:root[data-theme=light] .leaflet-tile-pane{filter:none}
+.leaflet-container{font-family:"Hanken Grotesk",system-ui,sans-serif}
+.leaflet-container a{color:#1846D6}
+.leaflet-tooltip{font-size:13px;font-weight:600;border-radius:8px;padding:5px 9px}
+.leaflet-bar a{width:34px;height:34px;line-height:34px}
+body.mapbig .split{grid-template-columns:1fr}
+body.mapbig .sidecol{order:-1;position:static;max-height:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,420px);gap:12px}
+body.mapbig .mapbox{height:74vh;grid-column:1}
+body.mapbig .maplegend{grid-column:1;grid-row:2}
+body.mapbig .detail{grid-column:2;grid-row:1/3;max-height:calc(74vh + 34px);overflow:auto}
+@media (max-width:1180px){body.mapbig .sidecol{grid-template-columns:1fr}.mapbox{height:340px}}
+
+/* ===== attesa della ricerca ===== */
+.progress{left:0;right:0;top:0;bottom:0;width:auto;border:0;border-radius:0;padding:24px 16px;background:rgba(10,14,19,.62);display:flex;align-items:flex-start;justify-content:center;overflow:auto;box-shadow:none}
+.progress.err{border:0}
+.wcard{width:min(900px,100%);margin-top:6vh;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:0 20px 60px var(--shadow);display:flex;flex-direction:column;gap:18px}
+.whead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.progress h4{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:22px;font-weight:800;margin:0}
+.progress p{font-size:14px;margin:0;color:var(--text2)}
+.wbar{height:10px;border-radius:99px;background:var(--line);overflow:hidden}
+.wbar b{display:block;height:100%;width:0;background:var(--radar);border-radius:99px;transition:width 1s linear}
+.wtime{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px;color:var(--muted)}
+.wsteps{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;list-style:none;margin:0;padding:0}
+.wsteps li{font-size:13px;padding:9px 11px;border-radius:10px;background:var(--surface2);color:var(--muted);border:1px solid transparent}
+.wsteps li.done{color:var(--ok);background:var(--ok-bg)}
+.wsteps li.now{color:var(--text);border-color:var(--radar);background:var(--sel);font-weight:600}
+.wnums{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.wnums div{background:var(--surface2);border-radius:12px;padding:10px 14px}
+.wnums b{display:block;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:26px;line-height:1.1}
+.wnums span{font-size:12px;color:var(--muted)}
+.wstat{border-top:1px solid var(--line);padding-top:18px;display:flex;flex-direction:column;gap:6px;min-height:168px}
+.wstat .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--radar-text);font-weight:600}
+.wstat .big{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:clamp(40px,7vw,60px);line-height:1;letter-spacing:-.02em}
+.wstat .tx{font-size:16px;color:var(--text);max-width:60ch}
+.wstat .nt{font-size:14px;color:var(--text2);max-width:64ch}
+.wstat a{font-size:12px;color:var(--muted)}
+.wnav{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.wnav button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);cursor:pointer;font-size:16px}
+.wnav button:hover{border-color:var(--radar)}
+.wmin{cursor:pointer;background:none;border:1px solid var(--line);border-radius:10px;color:var(--text2);font-size:13px;min-height:40px;padding:0 12px}
+.progress pre{max-height:none;font-size:12px;color:var(--muted)}
+.progress.mini{left:auto;top:auto;right:20px;bottom:20px;width:min(360px,calc(100vw - 32px));padding:0;background:none;display:block;overflow:visible}
+.progress.mini .wcard{margin:0;padding:16px 18px;gap:10px;border-color:var(--radar)}
+.progress.mini h4{font-size:16px}
+.progress.mini .wsteps,.progress.mini .wnums,.progress.mini .wstat,.progress.mini #psub,.progress.mini pre{display:none}
+
+/* ===== carattere: sala di controllo ===== */
+.hero2{position:relative;overflow:hidden;border-radius:22px;padding:30px 34px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:center;color:#E6EDF3;
+  background:radial-gradient(900px 380px at 88% 50%,rgba(54,242,160,.16),transparent 62%),linear-gradient(135deg,#0A0F14 0%,#0E1820 60%,#0B1F19 100%);border:1px solid #1B2733;
+  --radar:#36F2A0;--line:#223140;--sweep:.18}
+.hero2::after{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:44px 44px;mask-image:linear-gradient(90deg,transparent,#000 55%)}
+.hero2>*{position:relative;z-index:1}
+.hero2 .eyebrow{color:#36F2A0;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px}
+.hero2 h1{margin:10px 0 20px;font-size:clamp(34px,4.8vw,62px);line-height:.98;letter-spacing:-.03em;color:#FFFFFF}
+.hero2 h1 em{color:#36F2A0}
+.hero2 .tiles{gap:10px}
+.hero2 .tile{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:11px 16px;min-width:96px;backdrop-filter:blur(4px)}
+.hero2 .tile .n{font-size:26px;font-weight:800;color:#FFFFFF}.hero2 .tile .l{font-size:12px;color:#A7B5C2;margin-top:3px}
+.hero2 .radar{width:210px;display:block}.hero2 .radar svg{max-width:none;width:210px}
+.marq{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:10px;padding:2px 0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+.mqrow{display:flex;gap:10px;width:max-content;animation:mq var(--dur,60s) linear infinite}
+.mqrow.rev{animation-direction:reverse}
+.marq:hover .mqrow{animation-play-state:paused}
+@keyframes mq{to{transform:translateX(-50%)}}
+.mq{flex:none;display:inline-flex;align-items:center;gap:9px;padding:7px 14px 7px 8px;border-radius:99px;background:var(--surface);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--text2);white-space:nowrap}
+.mq img{width:22px;height:22px;border-radius:6px;background:#FFFFFF;object-fit:contain}
+.mq.live{color:var(--text)}.mq.live::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--radar);box-shadow:0 0 8px var(--radar)}
+.mqlab{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 -4px}
+.srcbad{font-size:12px;color:var(--amber);display:flex;flex-wrap:wrap;gap:4px 14px}
+.chip{border-radius:99px;padding:6px 13px;background:transparent}
+.chip[aria-pressed=true]{background:var(--btn-bg);border-color:var(--btn-bg);color:var(--btn-text);font-weight:600}
+.filters,.detail,.cvsec,.wcard{border-radius:18px}
+.row{border-radius:16px;padding:14px 16px;transition:border-color .18s,transform .18s,box-shadow .18s}
+.row:hover{border-color:var(--fam);transform:translateY(-1px)}
+.row.on{border-color:var(--radar);box-shadow:var(--glow)}
+.rt{font-size:17px}
+.row .score{width:52px;height:52px}.row .score svg{width:52px;height:52px}.row .score b{font-size:18px}
+.star{border-radius:12px}
+.mapbox{border-radius:18px}
+.meter i b,.wbar b{background:linear-gradient(90deg,var(--radar),var(--btn-hover))}
+.wstat .big{color:var(--radar-text)}
+.open{border-radius:12px}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.row{animation:rise .28s ease both}
+@media (prefers-reduced-motion:reduce){.mqrow{animation:none;flex-wrap:wrap;width:auto}.row{animation:none}.mq[aria-hidden=true]{display:none}}
+@media (max-width:860px){.hero2{grid-template-columns:1fr;padding:22px 20px}.hero2 .radar{display:none}}
+
+/* ===== tema, lingua, percorso CV, giochi ===== */
+.prefs{display:flex;gap:8px}
+.prefs button{flex:1;cursor:pointer;min-height:40px;border-radius:10px;border:1px solid var(--side-line);background:transparent;color:var(--side-text);font-size:13px;font-weight:600}
+.prefs button:hover{border-color:#36F2A0;color:#FFFFFF}
+.cvsteps{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:20px;padding-top:20px;border-top:1px solid var(--line)}
+.cvstep{background:var(--surface2);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.cvstep .n{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;color:var(--radar-text)}
+.cvstep h3{margin:0;font-size:18px;font-weight:700}
+.cvstep p{margin:0;font-size:14px;color:var(--text2)}
+.cvstep .btn2{align-self:flex-start;margin-top:auto}
+.cvstep.wide{grid-column:1/-1}
+.fitrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.fitrow .t{flex:1;min-width:0;font-size:14px}.fitrow .t b{display:block;font-weight:600;overflow-wrap:anywhere}
+.fitrow .t span{color:var(--muted);font-size:13px}
+.fitrow .sc{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:22px;min-width:40px;text-align:right}
+.fitrow .btn2{min-height:38px;padding:6px 12px;font-size:13px}
+.trrow.chg textarea{border-color:var(--radar);box-shadow:0 0 0 1px var(--radar)}
+.trrow.hl textarea{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}
+.edbox{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--text2);display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.delta{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:26px}
+.delta em{font-style:normal;color:var(--radar-text)}
+.wgame{border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.wgame canvas{width:100%;height:auto;aspect-ratio:900/340;border-radius:16px;background:var(--surface2);border:1px solid var(--line);outline:none;cursor:pointer;touch-action:none}
+.wgame canvas:focus-visible{border-color:var(--radar)}
+.whint{font-size:13px;color:var(--muted)}
+.progress.mini .wgame{display:none}
+
+/* ===== intervista e profilo di ricerca ===== */
+.qa{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+.qa>label,.qa>.ql{font-weight:700;font-size:15px}
+.qa .hint{font-size:13px;color:var(--muted);margin:-4px 0 0}
+.qa textarea,.qa input[type=text]{width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:11px 13px;font:inherit;font-size:15px}
+.qa textarea{min-height:110px;resize:vertical}
+.qa .chips{flex-wrap:wrap}
+.clu{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:start;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:10px}
+.clu.off{opacity:.5}
+.clu input{width:22px;height:22px;margin-top:2px;accent-color:var(--radar)}
+.clu .nm{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.clu .tier{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:2px 7px;background:var(--sel);color:var(--radar-text)}
+.clu .why{grid-column:2;font-size:14px;color:var(--text2)}
+.clu .tt{grid-column:2;font-size:13px;color:var(--muted)}
+.wz-foot{position:sticky;bottom:-26px;background:var(--surface);padding:14px 0 4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:18px}
+.rm{cursor:pointer;border:0;background:none;color:inherit;font-size:15px;line-height:1;padding:0 0 0 4px}
+.lead2{margin:-8px 0 16px;color:#A7B5C2;font-size:15px;max-width:70ch}
+
+/* ===== personaggi: Vale (intervista) e Tina (giudice) ===== */
+.masc{flex:none;display:inline-block;line-height:0}
+.masc svg{width:100%;height:100%;overflow:visible}
+.masc .bob{animation:mbob 3.2s ease-in-out infinite;transform-origin:60px 110px}
+.masc .eye{animation:mblink 4.5s infinite;transform-box:fill-box;transform-origin:center}
+.masc .eye.r{animation-delay:.08s}
+.masc .glow{animation:mglow 1.8s ease-in-out infinite}
+.masc .gavel{animation:mtap 2.4s ease-in-out infinite;transform-origin:92px 92px}
+.masc .wave{animation:mwave 2.8s ease-in-out infinite;transform-origin:24px 86px}
+@keyframes mbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes mblink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes mglow{0%,100%{opacity:.45}50%{opacity:1}}
+@keyframes mtap{0%,70%,100%{transform:rotate(0)}80%{transform:rotate(-24deg)}90%{transform:rotate(6deg)}}
+@keyframes mwave{0%,100%{transform:rotate(0)}50%{transform:rotate(-14deg)}}
+.says{display:flex;align-items:flex-end;gap:14px;margin:0 40px 6px 0}
+.says .masc{width:92px;height:92px}
+.bubble{position:relative;background:var(--surface2);border:1px solid var(--line);border-radius:16px 16px 16px 4px;padding:12px 16px;font-size:15px;color:var(--text);max-width:62ch}
+.bubble b{display:block;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--radar-text);margin-bottom:2px}
+.verdict{display:flex;gap:12px;align-items:center;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+.verdict .masc{width:54px;height:54px}
+.verdict .t{font-size:14px;color:var(--text)}
+.verdict .t b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.verdict .fit{margin-left:auto;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:24px;color:var(--radar-text)}
+.wwho{display:flex;align-items:center;gap:14px}
+.wwho .masc{width:64px;height:64px}
+.progress.mini .wwho .masc{width:36px;height:36px}
+@media (prefers-reduced-motion:reduce){.masc .bob,.masc .eye,.masc .glow,.masc .gavel,.masc .wave{animation:none}}
+@media (max-width:700px){.says{flex-direction:column;align-items:flex-start;margin-right:0}.says .masc{width:72px;height:72px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="sidebar" aria-label="Viste">
+    <div class="brand display">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle class="ring" cx="16" cy="16" r="14" stroke-width="2"/><circle class="ring" cx="16" cy="16" r="8" stroke-width="2" opacity=".55"/><path class="ring" d="M16 16L26 9" stroke-width="2.4" stroke-linecap="round"/><circle class="dot" cx="16" cy="16" r="2.4"/></svg>
+      Job Radar
+    </div>
+    <div class="nav" id="views">
+      <button class="vtab" type="button" data-view="win" aria-pressed="true">Ultime 24 ore <small id="n-win"></small></button>
+      <button class="vtab" type="button" data-view="fav" aria-pressed="false">Preferiti e candidature <small id="n-fav"></small></button>
+      <button class="vtab" type="button" data-view="hidden" aria-pressed="false">Scartati <small id="n-hidden"></small></button>
+    </div>
+    <div class="nav">
+      <div class="lab">Strumenti</div>
+      <button class="vtab" type="button" id="tool-profile" aria-pressed="false">La mia ricerca</button>
+      <button class="vtab" type="button" id="tool-cv" aria-pressed="false">Il tuo CV</button>
+      <label class="lab" for="f-date" style="padding-top:12px">Archivio per giorno</label>
+      <select id="f-date"></select>
+    </div>
+    <div class="sfoot">
+      <div class="prefs"><button type="button" id="b-theme">Tema chiaro</button><button type="button" id="b-lang" class="notr">English</button></div>
+      <div class="scan" id="scan"></div>
+      <button class="refresh" id="refresh" type="button" hidden>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Aggiorna ora
+      </button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <header class="hero2">
+      <div>
+        <div class="eyebrow" id="eyebrow">Europa, ultime 24 ore</div>
+        <h1 class="display" id="headline"></h1>
+        <p class="lead2 notr" id="lead2" hidden></p>
+        <div class="tiles" id="tiles"></div>
+      </div>
+      <div class="radar" aria-hidden="true">
+        <svg viewBox="0 0 360 360" fill="none">
+          <circle class="grid" cx="180" cy="180" r="170"/><circle class="grid" cx="180" cy="180" r="125"/><circle class="grid" cx="180" cy="180" r="80"/><circle class="grid" cx="180" cy="180" r="35"/>
+          <path class="grid" d="M180 10V350M10 180H350"/>
+          <g class="sweep"><path class="wedge" d="M180 180L180 10A170 170 0 0 1 300 60Z"/><path class="beam" d="M180 180L180 10"/></g>
+          <circle class="blip" cx="250" cy="98" r="6" style="fill:#36F2A0"/><circle class="blip b2" cx="118" cy="132" r="5" style="fill:#5AA9FF"/><circle class="blip b3" cx="240" cy="236" r="7" style="fill:#FFB84D"/>
+          <circle class="blip b4" cx="96" cy="250" r="4.5" style="fill:#C58CFF"/><circle class="blip b2" cx="205" cy="60" r="4" style="fill:#FF8A9B"/>
+          <circle cx="180" cy="180" r="5" style="fill:#36F2A0"/>
+        </svg>
+      </div>
+    </header>
+    <div class="mqlab">Da dove arrivano gli annunci</div>
+    <div class="marq" id="sources" aria-label="Fonti consultate"></div>
+    <div class="srcbad" id="srcbad"></div>
+
+
+  <section class="cvsec" id="cvsec" hidden aria-label="Il tuo CV">
+    <div class="cvhead">
+      <div>
+        <h2 class="display">Il tuo CV</h2>
+        <p id="cvintro"></p>
+      </div>
+      <div class="cvact" id="cvact"></div>
+    </div>
+    <input type="file" id="cvfile" accept=".pdf,.docx,.txt" hidden>
+    <div class="cvpaste" id="cvpaste" hidden>
+      <label for="cvtext" class="grp" style="margin-bottom:6px">Incolla qui il testo del CV</label>
+      <textarea id="cvtext"></textarea>
+      <div class="cvact" style="margin-top:10px"><button class="btn2 solid" type="button" id="cvtextsend">Usa questo testo</button></div>
+    </div>
+    <div class="cvmsg" id="cvmsg" hidden></div>
+    <div class="hub" id="hublist" hidden></div>
+    <div class="cvgrid" id="cvgrid" hidden></div>
+    <div class="cvsteps" id="cvsteps"></div>
+  </section>
+
+
+    <div id="work" style="display:flex;flex-direction:column;gap:18px">
+      <details class="filters" open aria-label="Filtri">
+        <summary>Filtri <span class="act" id="factive"></span></summary>
+        <div class="fbody">
+    <div class="frow" id="row-status" hidden><span class="lab">Stato</span><div class="chips" id="f-status"></div></div>
+    <div class="frow"><span class="lab">Ruolo</span><div class="chips" id="f-role"></div></div>
+    <div class="frow"><span class="lab">Paese</span><div class="chips" id="f-country"></div></div>
+    <div class="frow" id="row-city"><span class="lab">Città</span><div class="chips" id="f-city"></div></div>
+    <div class="cvfilters" id="cvfilters" hidden>
+      <div class="cvfhead">Filtri dal tuo CV</div>
+      <div class="frow"><span class="lab">Hai</span><div class="chips" id="f-skill"></div></div>
+      <div class="frow"><span class="lab">Ti manca</span><div class="chips" id="f-need"></div></div>
+      <div class="frow"><span class="lab">Requisiti</span><div class="chips" id="f-reqs"></div></div>
+    </div>
+    <div class="fbottom">
+      <label class="slider"><span class="grp">Score minimo</span><input type="range" id="f-score" min="0" max="100" step="5" value="0"><output id="f-score-val">0</output></label>
+      <div class="grp"><span>Modalità</span><div class="chips" id="f-mode"></div></div>
+      <div class="grp"><button class="chip" type="button" id="f-iten" aria-pressed="false">Solo annunci in italiano o inglese</button></div>
+      <div class="grp" id="grp-fresh"><button class="chip" type="button" id="f-fresh" aria-pressed="false">Solo nuovi dall'ultima ricerca</button></div>
+      <div class="grp push"><label for="f-sort">Ordina per</label><select id="f-sort"><option value="score">Aderenza al profilo</option><option value="cv">Match con il CV</option><option value="kw">Parole chiave già nel CV (%)</option><option value="date">Più recenti</option></select></div>
+      <button class="clear" type="button" id="clear">Azzera filtri</button>
+    </div>
+        </div>
+      </details>
+
+      <div class="split">
+        <section aria-label="Elenco annunci">
+          <div class="sechead"><h2 class="display" id="listhead">Tutti gli annunci</h2><div class="facts2"><button class="btn2 quiet" type="button" id="export" hidden>Esporta in Excel</button><span id="count"></span></div></div>
+          <div class="grid" id="list" aria-live="polite"></div>
+        </section>
+        <aside class="sidecol" id="mapsec" aria-label="Mappa e dettaglio">
+          <div class="mapbox" id="mapbox">
+            <svg id="map" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Mappa dell'Europa con gli annunci"><g id="countries"></g><g id="dots"></g><g id="labels"></g></svg>
+            <div id="lmap" hidden></div>
+            <div class="mapcap" id="mapcount"></div>
+            <button class="mapx" type="button" id="mapbig" aria-pressed="false">Ingrandisci la mappa</button>
+            <div class="zoom"><button type="button" id="zin" aria-label="Ingrandisci">+</button><button type="button" id="zout" aria-label="Riduci">&minus;</button><button type="button" id="zreset" aria-label="Mostra tutta l'Europa">&#8634;</button></div>
+          </div>
+          <div class="maplegend" id="maplegend"></div>
+          <div class="detail" id="detail"></div>
+        </aside>
+      </div>
+    </div>
+    <footer><span id="foothint"></span>Generato da Job Radar sul tuo computer. Dati da fonti pubbliche: verifica sempre l’annuncio originale. Città: GeoNames (CC BY 4.0). Contorni: Natural Earth.</footer>
+  </main>
+</div>
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Valutazione del CV per questo annuncio"></div></div>
+<div class="toast" id="toast" hidden role="status"></div>
+<div class="progress" id="progress" hidden>
+  <div class="wcard" role="status" aria-live="polite">
+    <div class="whead"><div class="wwho"><span id="wmasc"></span><h4><span class="spin" id="spin"></span> <span id="ptitle">Sto cercando gli annunci...</span></h4></div><button class="wmin" type="button" id="wmin">Riduci</button></div>
+    <p id="psub"></p>
+    <div><div class="wbar"><b id="wfill"></b></div><div class="wtime"><span id="welapsed"></span><span id="wleft"></span></div></div>
+    <ol class="wsteps" id="wsteps"><li>1. Fonti rapide</li><li>2. LinkedIn: ricerca in 30 paesi</li><li>3. LinkedIn: lettura degli annunci</li><li>4. Filtri e giudizio di Tina</li></ol>
+    <div class="wstat" id="wstat" aria-live="off"></div>
+    <div class="wnav" id="wnavrow"><button type="button" id="wprev" aria-label="Dato precedente">&#8592;</button><button type="button" id="wnext" aria-label="Dato successivo">&#8594;</button><span id="wpos"></span></div>
+    <div class="wgame" id="wgame">
+      <button class="btn2" type="button" id="wplay">Gioca mentre aspetti</button>
+      <canvas id="wcanvas" width="1800" height="680" hidden tabindex="0" aria-label="Giochino per l'attesa"></canvas>
+      <div class="whint" id="whint"></div>
+    </div>
+    <pre id="plog"></pre>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script>
+const DATA = __DATA__;
+/* i gruppi di ruoli vengono dal profilo di ricerca dell'utente; i colori si assegnano in ordine */
+const FAM_LIST = DATA.families || [];
+const FAMILIES = Object.fromEntries(FAM_LIST.map(f => [f.id, f.label]));
+const FAM_ORDER = FAM_LIST.map(f => f.id);
+const PALETTE = ["tech_sales","bd","sales","change","affini","extra"];
+const CITY_IT = {"milan":"Milano","padua":"Padova","bergamo":"Bergamo","rome":"Roma","turin":"Torino","naples":"Napoli","florence":"Firenze","venice":"Venezia","genoa":"Genova","london":"Londra","munich":"Monaco di Baviera","cologne":"Colonia","paris":"Parigi","brussels":"Bruxelles","lisbon":"Lisbona","warsaw":"Varsavia","prague":"Praga","copenhagen":"Copenaghen","stockholm":"Stoccolma","athens":"Atene","zurich":"Zurigo","geneva":"Ginevra","dublin":"Dublino","barcelona":"Barcellona","seville":"Siviglia","the hague":"L'Aia","frankfurt":"Francoforte","frankfurt am main":"Francoforte","hamburg":"Amburgo","berlin":"Berlino","edinburgh":"Edimburgo","cracow":"Cracovia","krakow":"Cracovia","bucharest":"Bucarest","antwerp":"Anversa","marseille":"Marsiglia","lyon":"Lione","wien":"Vienna","munchen":"Monaco di Baviera","münchen":"Monaco di Baviera","köln":"Colonia","zürich":"Zurigo","kraków":"Cracovia","antwerpen":"Anversa","den haag":"L'Aia","bruxelles":"Bruxelles","lisboa":"Lisbona","warszawa":"Varsavia","praha":"Praga","københavn":"Copenaghen"};
+const state = {view:"win", role:"", country:"", city:"", mode:"", min:0, iten:false, fresh:false, status:"", sort:"score", skill:"", need:"", reqs:""};
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+const svgn = (t, attrs) => { const e = document.createElementNS(NS, t); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+let LANG = "it"; try { LANG = localStorage.getItem("jr-lang") === "en" ? "en" : "it"; } catch (e) {}
+const LOC = LANG === "en" ? "en-GB" : "it-IT";
+/* inglese: ogni testo che compare nella pagina passa dal dizionario (frasi esatte, frasi con numeri, parole dentro le frasi) */
+const I18N = DATA.i18n || {exact:{}, rx:[], sub:[]};
+const I_RX = (I18N.rx || []).map(([p, r]) => [new RegExp(p), r]), I_SUB = (I18N.sub || []).map(([p, r]) => [new RegExp(p, "g"), r]);
+const I_SKIP = ".rt,.dt,.orig,.src,.notr,.blk p,textarea,pre,select.notr,.leaflet-container,.mq,script,style,canvas";
+function trS(str){
+  const core = str.trim(); if (!core) return str;
+  const bare = core.replace(/[:.]$/, "");
+  let out = I18N.exact[core];
+  if (out == null && I18N.exact[bare] != null) out = I18N.exact[bare] + core.slice(bare.length);
+  if (out == null) for (const [r, rp] of I_RX){ if (r.test(core)){ out = core.replace(r, rp); break; } }
+  let c = out == null ? core : out; for (const [r, rp] of I_SUB) c = c.replace(r, rp);
+  return c === core ? str : str.replace(core, c);
+}
+function trNode(n){
+  if (n.nodeType === 3){ const pe = n.parentElement; if (!pe || pe.closest(I_SKIP)) return; const v = trS(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; }
+  else if (n.nodeType === 1){ if (n.closest(I_SKIP)) return; ["placeholder","aria-label","title"].forEach(a => { const v = n.getAttribute(a); if (v){ const t = trS(v); if (t !== v) n.setAttribute(a, t); } }); n.childNodes.forEach(trNode); }
+}
+function startI18n(){
+  if (LANG !== "en") return;
+  document.documentElement.lang = "en";
+  new MutationObserver(ms => ms.forEach(mu => { if (mu.type === "characterData") trNode(mu.target); else mu.addedNodes.forEach(trNode); })).observe(document.body, {childList:true, subtree:true, characterData:true});
+  trNode(document.body);
+}
+const fmtDT = iso => { try { return new Date(iso).toLocaleString(LOC,{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Rome"}); } catch(e){ return iso||""; } };
+const fmtD = iso => { try { return new Date(iso).toLocaleDateString(LOC,{day:"numeric",month:"short",timeZone:"Europe/Rome"}); } catch(e){ return iso||""; } };
+const safeUrl = u => /^https?:\/\//i.test(u||"") ? u : "#";
+const famColor = f => `var(--c-${PALETTE[Math.max(0, FAM_ORDER.indexOf(f)) % PALETTE.length]})`;
+/* ---------- viste: finestra delle 24 ore, preferiti, scartati, archivio per giorno ---------- */
+const RUN = DATA.run, TR = DATA.tracker || {fav:{}, hidden:{}};
+const ALL = [], BYKEY = new Map();
+DATA.days.forEach(d => d.jobs.forEach(j => { j._day = d.date; j._i = ALL.length; ALL.push(j); BYKEY.set(j._k, j); }));
+Object.entries(TR.fav).forEach(([k, f], n) => { if (!BYKEY.has(k) && f.job){ f.job._k = k; f.job._i = "f" + n; f.job._old = true; BYKEY.set(k, f.job); } });
+const STATUS = {"":"Da valutare", da_candidare:"Da candidarsi", candidata:"Candidata", colloquio:"Colloquio", offerta:"Offerta", chiusa:"Chiusa"};
+const isFav = j => !!TR.fav[j._k], isHidden = j => !!TR.hidden[j._k];
+const isNew = j => RUN && j.first_seen === RUN.at;
+const SOME_OLD = () => RUN && RUN.added < RUN.total;
+const PERIOD = RUN ? `${RUN.hours || 24} ore` : "24 ore";
+function viewJobs(v){
+  if (v === "win") return ALL.filter(j => RUN ? j.last_seen === RUN.at && !isHidden(j) : j._day === (DATA.days[0]||{}).date && !isHidden(j));
+  if (v === "fav") return Object.keys(TR.fav).map(k => BYKEY.get(k)).filter(Boolean);
+  if (v === "hidden") return ALL.filter(isHidden);
+  return ALL.filter(j => j._day === v && !isHidden(j));
+}
+let VIEW = null;
+function day(){
+  if (VIEW && VIEW.date === state.view) return VIEW;
+  const src = DATA.days.find(d => d.date === state.view) || RUN || DATA.days[0] || {};
+  VIEW = {date:state.view, jobs:viewJobs(state.view), generated_at:src.generated_at || src.at, sources_consulted:src.sources_consulted, sources_failed:src.sources_failed};
+  return VIEW;
+}
+function viewCounts(){
+  $("n-win").textContent = viewJobs("win").length; $("n-fav").textContent = Object.keys(TR.fav).length; $("n-hidden").textContent = Object.keys(TR.hidden).length;
+  const cvOn = !$("cvsec").hidden;
+  document.querySelectorAll(".vtab[data-view]").forEach(b => b.setAttribute("aria-pressed", String(!cvOn && b.dataset.view === state.view)));
+  $("tool-cv").setAttribute("aria-pressed", String(cvOn));
+  $("f-date").value = DATA.days.some(d => d.date === state.view) ? state.view : "";
+}
+let toastT = 0;
+function toast(t){ const x = $("toast"); x.textContent = t; x.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { x.hidden = true; }, 3200); }
+async function trackPost(path, body){
+  if (!IS_SERVER){ toast("Per salvare apri Job Radar da «Avvia Job Radar.bat»."); return null; }
+  try { const r = await (await fetch("/api/track/" + path, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)})).json(); if (!r.ok) toast(r.error || "Non salvato."); return r.ok ? r : null; }
+  catch (e) { toast("Job Radar non risponde: rilancia «Avvia Job Radar.bat»."); return null; }
+}
+async function toggleFav(j){
+  const on = !isFav(j), r = await trackPost("fav", {url:j.url, on}); if (!r) return;
+  if (on){ TR.fav[j._k] = r.fav || {saved_at:new Date().toISOString(), status:"", note:""}; delete TR.hidden[j._k]; toast("Salvato tra i preferiti: resta finché non lo togli."); }
+  else delete TR.fav[j._k];
+  VIEW = null; viewCounts();
+  if (state.view === "fav") update("fav"); else refreshCard(j);
+}
+async function setTrack(j, patch){
+  const r = await trackPost("state", {url:j.url, ...patch}); if (!r) return;
+  TR.fav[j._k] = r.fav; delete TR.hidden[j._k]; VIEW = null; viewCounts();
+  if ("status" in patch){ if (state.view === "fav" && state.status) update("fav"); else { refreshCard(j); renderFilters(); } }
+}
+async function toggleHidden(j){
+  const on = !isHidden(j), r = await trackPost("hide", {url:j.url, on}); if (!r) return;
+  if (on){ TR.hidden[j._k] = new Date().toISOString(); delete TR.fav[j._k]; toast("Scartato: lo ritrovi in «Scartati»."); } else delete TR.hidden[j._k];
+  VIEW = null; viewCounts(); update("hide");
+}
+function refreshCard(j){ const c = $("job-" + j._i); if (c) c.replaceWith(card(j)); if (selJob === j){ if (!$("modal").hidden && $("sheet").querySelector(".detailhost")) showDetail(j, true); else fillDetail($("detail"), j); } }
+function starBtn(j){
+  const b = el("button","star"); b.type = "button"; b.setAttribute("aria-pressed", String(isFav(j)));
+  b.setAttribute("aria-label", isFav(j) ? "Togli dai preferiti" : "Salva tra i preferiti"); b.title = isFav(j) ? "Togli dai preferiti" : "Salva tra i preferiti";
+  const sv = svgn("svg",{viewBox:"0 0 24 24","aria-hidden":"true"}); sv.appendChild(svgn("path",{d:"M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.2 6-5.5-3-5.5 3 1.2-6L3.2 9.6l6.1-.8z"})); b.appendChild(sv);
+  b.addEventListener("click", ev => { ev.stopPropagation(); toggleFav(j); });
+  return b;
+}
+function daysSince(iso){ const t = Date.parse(iso); return isNaN(t) ? null : Math.floor((Date.now() - t) / 864e5); }
+function trackBox(j){
+  const f = TR.fav[j._k], box = el("div","trk"), sid = "st-" + j._i, nid = "nt-" + j._i;
+  const sl = el("label",null,"Stato"); sl.htmlFor = sid; const sel = el("select"); sel.id = sid;
+  Object.entries(STATUS).forEach(([v, l]) => { const o = el("option",null,l); o.value = v; sel.appendChild(o); }); sel.value = f.status || "";
+  sel.addEventListener("change", () => setTrack(j, {status:sel.value}));
+  const nl = el("label",null,"Nota"); nl.htmlFor = nid; const ta = el("textarea"); ta.id = nid; ta.rows = 1; ta.value = f.note || ""; ta.placeholder = "Perché ti interessa, contatti, prossimi passi...";
+  ta.addEventListener("change", () => setTrack(j, {note:ta.value}));
+  box.append(sl, sel, nl, ta);
+  const bits = ["Salvato il " + fmtD(f.saved_at)]; let warn = false;
+  if (f.applied_at && ["candidata","colloquio","offerta","chiusa"].includes(f.status)) bits.push("candidata il " + fmtD(f.applied_at));
+  const d = f.status === "candidata" ? daysSince(f.applied_at) : null;
+  if (d != null && d >= 7){ bits.push(`nessuna risposta da ${d} giorni: valuta un sollecito`); warn = true; }
+  if (j._old) bits.push("annuncio non più in archivio: controlla che sia ancora aperto");
+  box.appendChild(el("div","when" + (warn ? " warn" : ""), bits.join(" · ")));
+  return box;
+}
+function exportCsv(){
+  const rows = [["Azienda","Ruolo","Città","Paese","Aderenza al profilo","Match CV","Stato","Nota","Salvato il","Candidata il","Livello","Contratto","Modalità","Lingue","RAL","Fonte","Pubblicato","Link"]];
+  viewJobs("fav").forEach(j => { const f = TR.fav[j._k] || {}; rows.push([j.company, j.title, cityName(j), j.country, j.score, (j.cv||{}).score ?? "", STATUS[f.status||""], f.note||"", (f.saved_at||"").slice(0,10), (f.applied_at||"").slice(0,10), j.level, j.contract, j.mode, j.languages, j.salary, j.source, (j.posted_at||"").slice(0,10), j.url]); });
+  const csv = "\ufeff" + rows.map(r => r.map(v => '"' + String(v ?? "").replace(/"/g, '""').replace(/\r?\n/g, " ") + '"').join(";")).join("\r\n");
+  const a = el("a"); a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv;charset=utf-8"})); a.download = "Job Radar - preferiti e candidature.csv"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const reduced = () => matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+/* ---------- città: nome leggibile e chiave per il raggruppamento ---------- */
+const cityKey = j => (j.geo === "city" && j.lat != null) ? j.lat.toFixed(2) + "," + j.lon.toFixed(2) : "";
+function cleanCity(s){
+  s = (s || "").replace(/\b(office|area|metropolitan|greater|region|hybrid|remote|ibrido)\b/gi, "").replace(/^[A-Z]{2,3}\s*-\s*/, "").replace(/\s+/g, " ").trim();
+  const it = LANG === "it" ? CITY_IT[s.toLowerCase()] : null; return it || s;
+}
+let CITY_NAMES = new Map();
+function buildCityNames(jobs){
+  const votes = new Map();
+  jobs.forEach(j => { const k = cityKey(j); if (!k) return; const n = cleanCity(j.city); if (!n) return; const m = votes.get(k) || new Map(); m.set(n, (m.get(n)||0) + 1); votes.set(k, m); });
+  CITY_NAMES = new Map([...votes].map(([k, m]) => [k, [...m].sort((a,b) => b[1]-a[1])[0][0]]));
+}
+const cityName = j => CITY_NAMES.get(cityKey(j)) || cleanCity(j.city) || "";
+
+/* ---------- filtri ---------- */
+function passes(j, skip){
+  return (skip === "role" || !state.role || j.role_family === state.role) &&
+         (skip === "country" || !state.country || j.country === state.country) &&
+         (skip === "city" || !state.city || cityKey(j) === state.city) &&
+         (skip === "mode" || !state.mode || j.mode === state.mode) &&
+         (!state.iten || !j.local_ad) &&
+         (!state.fresh || isNew(j)) &&
+         (skip === "status" || state.view !== "fav" || state.status === "" || ((TR.fav[j._k]||{}).status || "none") === state.status) &&
+         (skip === "skill" || !state.skill || (j.cv && (j.cv.matched||[]).includes(state.skill))) &&
+         (skip === "need" || !state.need || (j.cv && (j.cv.missing||[]).includes(state.need))) &&
+         (skip === "reqs" || !state.reqs || (j.cv && REQ_TEST[state.reqs](j.cv))) &&
+         (j.score||0) >= state.min;
+}
+const REQ_TEST = {all: c => c.gaps === 0, one: c => c.gaps <= 1, kw: c => (c.missing||[]).length <= 2};
+function countTerms(list, field){ const m = new Map(); list.forEach(j => ((j.cv||{})[field]||[]).forEach(t => m.set(t, (m.get(t)||0) + 1))); return [...m].sort((a,b) => b[1]-a[1]); }
+function countBy(list, fn){ const m = new Map(); list.forEach(j => { const v = fn(j); if (v) m.set(v, (m.get(v)||0) + 1); }); return [...m].sort((a,b) => b[1]-a[1]); }
+
+function chipRow(host, items, key, onPick){
+  host.replaceChildren();
+  items.forEach(([value, label, n, color]) => {
+    const b = el("button", "chip"); b.type = "button";
+    b.setAttribute("aria-pressed", String(state[key] === value));
+    if (color){ const s = el("span","sw"); s.style.background = color; b.appendChild(s); }
+    b.append(label);
+    if (n != null) b.append(el("small", null, String(n)));
+    b.addEventListener("click", () => { state[key] = value; if (onPick) onPick(); update(key); });
+    host.appendChild(b);
+  });
+}
+
+let moreCountries = false;
+function renderFilters(){
+  const jobs = day().jobs;
+  $("row-status").hidden = state.view !== "fav";
+  if (state.view === "fav"){
+    const sj = jobs.filter(j => passes(j, "status")), n = k => sj.filter(j => ((TR.fav[j._k]||{}).status || "none") === k).length;
+    chipRow($("f-status"), [["","Tutti", sj.length], ...Object.entries(STATUS).map(([k, l]) => [k || "none", l, n(k || "none")])], "status");
+  }
+  $("grp-fresh").hidden = !(state.view === "win" && SOME_OLD());
+  const roles = countBy(jobs.filter(j => passes(j, "role")), j => j.role_family).sort((a,b) => FAM_ORDER.indexOf(a[0]) - FAM_ORDER.indexOf(b[0]));
+  chipRow($("f-role"), [["","Tutti"], ...roles.map(([f,n]) => [f, FAMILIES[f]||f, n, famColor(f)])], "role");
+  const allC = countBy(jobs.filter(j => passes(j, "country")), j => j.country), TOPC = 9;
+  const showC = moreCountries || allC.length <= TOPC + 1 ? allC : allC.filter(([c], i) => i < TOPC || c === state.country);
+  chipRow($("f-country"), [["","Tutti"], ...showC.map(([c,n]) => [c,c,n])], "country", () => { state.city = ""; });
+  if (allC.length > TOPC + 1){ const b = el("button","chip more", moreCountries ? "Mostra meno paesi" : `Altri ${allC.length - showC.length} paesi`); b.type = "button"; b.addEventListener("click", () => { moreCountries = !moreCountries; renderFilters(); }); $("f-country").appendChild(b); }
+  const cities = countBy(jobs.filter(j => passes(j, "city")), cityKey).slice(0, 10);
+  $("row-city").hidden = !cities.length;
+  chipRow($("f-city"), [["","Tutte"], ...cities.map(([k,n]) => [k, CITY_NAMES.get(k) || k, n])], "city");
+  chipRow($("f-mode"), [["","Tutte"], ...countBy(jobs.filter(j => passes(j, "mode")), j => j.mode).map(([m,n]) => [m,m,n])], "mode");
+  // filtri dal CV: competenze che hai e che gli annunci chiedono, quelle che ti mancano, requisiti coperti
+  const withCv = jobs.some(j => j.cv);
+  $("cvfilters").hidden = !withCv;
+  if (withCv){
+    chipRow($("f-skill"), [["","Tutte"], ...countTerms(jobs.filter(j => passes(j, "skill")), "matched").slice(0, 14).map(([t,n]) => [t,t,n])], "skill");
+    chipRow($("f-need"), [["","Tutte"], ...countTerms(jobs.filter(j => passes(j, "need")), "missing").slice(0, 12).map(([t,n]) => [t,t,n])], "need");
+    const rb = jobs.filter(j => passes(j, "reqs") && j.cv), n = k => rb.filter(j => REQ_TEST[k](j.cv)).length;
+    chipRow($("f-reqs"), [["","Tutti"], ["all","Esperienza, studi e lingue coperti", n("all")], ["one","Al massimo un requisito scoperto", n("one")], ["kw","Mi mancano al massimo 2 parole chiave", n("kw")]], "reqs");
+  }
+}
+
+function update(changed){
+  renderFilters(); renderList(); writeHash();
+  if (changed !== "score") fitToFilter();
+}
+/* i filtri stanno anche nell'indirizzo (#paese=Italia&ruolo=bd): la vista si può salvare nei preferiti */
+const HASH_KEYS = {vista:"view", ruolo:"role", paese:"country", citta:"city", modalita:"mode", score:"min"};
+function writeHash(){
+  const p = new URLSearchParams(); for (const [h, k] of Object.entries(HASH_KEYS)) if (state[k] && !(k === "view" && state[k] === "win")) p.set(h, state[k]);
+  const s = p.toString(); history.replaceState(null, "", location.pathname + location.search + (s ? "#" + s : ""));
+}
+function readHash(){
+  const p = new URLSearchParams(location.hash.slice(1));
+  for (const [h, k] of Object.entries(HASH_KEYS)) if (p.get(h)) state[k] = k === "min" ? +p.get(h) : p.get(h);
+  $("f-score").value = state.min;
+}
+
+/* ---------- intestazione ---------- */
+function renderHead(d){
+  const n = d.jobs.length, best = n ? Math.max(...d.jobs.map(j => j.score||0)) : 0;
+  $("scan").replaceChildren("Ultima ricerca", el("b", null, RUN ? `${fmtDT(RUN.at)} · ${RUN.minutes} min` : d.generated_at ? fmtDT(d.generated_at) : "mai"));
+  const v = state.view, isDay = DATA.days.some(x => x.date === v);
+  $("eyebrow").textContent = v === "win" && RUN ? `Europa · pubblicati dal ${fmtDT(RUN.since)} al ${fmtDT(RUN.at)}` : v === "fav" ? "Restano qui finché non li togli" : v === "hidden" ? "Annunci che hai scartato" : "Archivio · trovati il " + fmtD(v);
+  const one = n === 1, tail = v === "win" ? (one ? "uscito in " : "usciti in ") + PERIOD : v === "fav" ? "tra i preferiti" : v === "hidden" ? (one ? "scartato" : "scartati") : isDay ? (one ? "trovato quel giorno" : "trovati quel giorno") : "da aprire";
+  $("listhead").textContent = v === "fav" ? "Preferiti e candidature" : v === "hidden" ? "Annunci scartati" : "Tutti gli annunci";
+  $("export").hidden = !(v === "fav" && n);
+  const h = $("headline"); h.replaceChildren();
+  if (n){ h.append(el("em", null, String(n)), (n === 1 ? " annuncio " : " annunci ") + tail); }
+  else { h.append(v === "fav" ? "Nessun preferito per ora" : "Nessun annuncio " + tail); }
+  const t = $("tiles"); t.replaceChildren();
+  const nCities = new Set(d.jobs.map(cityKey).filter(Boolean)).size;
+  [[n ? best : "-", "miglior score"], ...(v === "win" && SOME_OLD() ? [[d.jobs.filter(isNew).length, "nuovi dall'ultima ricerca"]] : []), [new Set(d.jobs.map(j => j.country)).size, "paesi"], [nCities, "città"], [(d.sources_consulted||[]).length, "fonti attive"]].forEach(([v,l]) => {
+    const x = el("div","tile"); x.append(el("div","n display",String(v)), el("div","l",l)); t.appendChild(x);
+  });
+  renderSources(d);
+}
+/* striscia scorrevole: le piattaforme interrogate (con il pallino acceso se hanno risposto) e i siti carriere monitorati */
+const PLATFORMS = [["LinkedIn","linkedin.com","LinkedIn"],["EURES","eures.europa.eu","EURES"],["Arbeitnow","arbeitnow.com","Arbeitnow"],["Remotive","remotive.com","Remotive"],["Jobicy","jobicy.com","Jobicy"],
+  ["RemoteOK","remoteok.com","Board remote"],["Himalayas","himalayas.app","Board remote"],["We Work Remotely","weworkremotely.com","Board remote"],["Jooble","jooble.org","Jooble"],["Adzuna","adzuna.com","Adzuna"],
+  ["Greenhouse","greenhouse.io","Board aziendali"],["Lever","lever.co","Board aziendali"],["Ashby","ashbyhq.com","Board aziendali"],["Workable","workable.com","Board aziendali"],["Personio","personio.com","Board aziendali"],
+  ["SmartRecruiters","smartrecruiters.com","Board aziendali"],["Recruitee","recruitee.com","Board aziendali"]];
+function mqItem(name, domain, live){
+  const x = el("span","mq" + (live ? " live" : ""));
+  if (domain){ const im = el("img"); im.alt = ""; im.loading = "lazy"; im.referrerPolicy = "no-referrer"; im.src = "https://www.google.com/s2/favicons?domain=" + encodeURIComponent(domain) + "&sz=64"; im.addEventListener("error", () => im.remove()); x.appendChild(im); }
+  x.append(name); return x;
+}
+function mqRow(items, rev, dur){
+  const r = el("div","mqrow" + (rev ? " rev" : "")); r.style.setProperty("--dur", dur + "s");
+  for (let k = 0; k < 2; k++) items.forEach(([n, dm, live]) => { const it = mqItem(n, dm, live); if (k) it.setAttribute("aria-hidden","true"); r.appendChild(it); });
+  return r;
+}
+function renderSources(d){
+  const host = $("sources"), ok = d.sources_consulted || []; host.replaceChildren();
+  let plat = PLATFORMS.filter(pf => ok.some(n => n.startsWith(pf[2]))).map(pf => [pf[0], pf[1], true]);
+  if (!plat.length) plat = PLATFORMS.map(pf => [pf[0], pf[1], false]);
+  while (plat.length < 14) plat = plat.concat(plat);
+  host.appendChild(mqRow(plat, false, 55));
+  const comp = (DATA.companies || []).filter(c => c.n).map(c => [c.n, c.d, false]);
+  if (comp.length > 8) host.appendChild(mqRow(comp, true, 110));
+  const bad = $("srcbad"); bad.replaceChildren();
+  (d.sources_failed || []).filter(f => !/chiavi non inserite|disattivato/.test(f.reason || "")).forEach(f => bad.appendChild(el("span", null, f.reason ? `${f.name}: ${f.reason}` : f.name)));
+}
+
+/* ---------- pezzi riutilizzati da card e scheda ---------- */
+function logoBox(j, size){
+  const box = el("div","logo"); box.style.setProperty("--fam", famColor(j.role_family));
+  if (size){ box.style.width = box.style.height = size + "px"; }
+  const mono = () => { box.className = "logo mono"; box.replaceChildren((j.company||"?").replace(/[^A-Za-zÀ-ÿ0-9 ]/g,"").split(/\s+/).filter(Boolean).slice(0,2).map(w => w[0]).join("").toUpperCase() || "?"); };
+  if (/^https:\/\//.test(j.logo||"")){
+    const img = el("img"); img.alt = ""; img.loading = "lazy"; img.referrerPolicy = "no-referrer"; img.src = j.logo;
+    img.addEventListener("error", mono); box.appendChild(img);
+  } else mono();
+  return box;
+}
+function famTag(j){ const t = el("span","famtag"); const i = el("i"); i.style.background = famColor(j.role_family); t.append(i, FAMILIES[j.role_family] || "Altro"); return t; }
+function place(j){ return [cityName(j), j.country].filter((v, i, a) => v && a.indexOf(v) === i).join(", "); }
+function langLabel(j){ return j.languages || ""; }
+
+/* ---------- elenco ---------- */
+function card(j){
+  const a = el("article","row" + (selJob === j ? " on" : "")); a.id = "job-" + j._i; a.style.setProperty("--fam", famColor(j.role_family));
+  const info = el("div","info"), tl = el("div","tl");
+  const tb = el("button","rt display", j.title_it || j.title); tb.type = "button"; tb.addEventListener("click", () => selectJob(j));
+  tl.appendChild(tb);
+  if (isNew(j) && SOME_OLD()) tl.appendChild(el("span","newtag","Nuovo"));
+  const f = TR.fav[j._k]; if (f && f.status) tl.appendChild(el("span","sttag",STATUS[f.status]));
+  info.append(tl, el("div","co",[j.company, place(j)].filter(Boolean).join(" · ")));
+  const meta = el("div","pills"); meta.appendChild(famTag(j));
+  [j.level !== "Non indicato" && j.level, j.mode, j.cv && ("Match CV " + j.cv.score)].filter(Boolean).forEach(t => meta.appendChild(el("span",null,t)));
+  const w = (j.reasons||[]).filter(r => r.k === "warn").length; if (w) meta.appendChild(el("span","wn", w === 1 ? "1 punto da controllare" : w + " punti da controllare"));
+  info.appendChild(meta);
+  const sc = el("div","score"), sv0 = j.score||0, C = 2*Math.PI*27, sv = svgn("svg",{viewBox:"0 0 64 64","aria-hidden":"true"}); sc.title = "Aderenza al profilo";
+  sv.append(svgn("circle",{cx:32,cy:32,r:27,class:"track"}), svgn("circle",{cx:32,cy:32,r:27,class:"val","stroke-dasharray":`${(C*sv0/100).toFixed(1)} ${C.toFixed(1)}`}));
+  sc.append(sv, el("b","display",String(sv0)));
+  a.append(logoBox(j, 44), info, sc, starBtn(j));
+  a.addEventListener("click", ev => { if (!ev.target.closest("button,a")) selectJob(j); });
+  return a;
+}
+function renderList(){
+  const d = day(), list = $("list"); list.replaceChildren();
+  $("f-score-val").textContent = state.min;
+  const order = {score:(a,b) => (b.score||0) - (a.score||0), cv:(a,b) => ((b.cv||{}).score||0) - ((a.cv||{}).score||0) || (b.score||0) - (a.score||0),
+                 kw:(a,b) => ((b.cv||{}).keyword_rate ?? -1) - ((a.cv||{}).keyword_rate ?? -1) || ((b.cv||{}).score||0) - ((a.cv||{}).score||0),
+                 date:(a,b) => String(b.posted_at).localeCompare(String(a.posted_at)) || (b.score||0) - (a.score||0)};
+  const jobs = d.jobs.filter(j => passes(j)).sort(order[state.sort] || order.score);
+  $("count").textContent = d.jobs.length ? `${jobs.length} di ${d.jobs.length}` : "";
+  const nf = ["role","country","city","mode","skill","need","reqs","status"].filter(k => state[k]).length + (state.min ? 1 : 0) + (state.iten ? 1 : 0) + (state.fresh ? 1 : 0);
+  $("factive").textContent = nf ? (nf === 1 ? "1 attivo" : nf + " attivi") + ` · ${jobs.length} annunci` : "nessuno attivo";
+  renderMap(jobs);
+  LIST = jobs; shown = 0;
+  if (!d.jobs.length){
+    const e = el("div","empty"), v = state.view;
+    if (v === "fav") e.append(el("b",null,"Nessun preferito"), "Clicca la stella su un annuncio per salvarlo: resta qui anche quando esce dalla finestra delle 24 ore.");
+    else if (v === "hidden") e.append(el("b",null,"Nessun annuncio scartato"), "Con «Non mi interessa» un annuncio sparisce dall'elenco e finisce qui.");
+    else e.append(el("b",null,"Nessun annuncio in questa finestra"), "La ricerca è stata eseguita ma nulla ha superato i filtri (data, lingue, settore). Riprova più tardi.");
+    list.appendChild(e); pickDefault(); return;
+  }
+  if (!jobs.length){ const e = el("div","empty"); e.append(el("b",null,"Nessun annuncio con questi filtri"), "Prova ad abbassare lo score minimo o a togliere un filtro."); list.appendChild(e); pickDefault(); return; }
+  showMore(PAGE); pickDefault();
+}
+/* l'elenco si disegna a blocchi: con migliaia di annunci la pagina resta veloce */
+const PAGE = 60; let LIST = [], shown = 0;
+function showMore(upTo){
+  const list = $("list"), old = list.querySelector(".morebtn"); if (old) old.remove();
+  const end = Math.min(LIST.length, upTo);
+  for (; shown < end; shown++) list.appendChild(card(LIST[shown]));
+  if (shown < LIST.length){ const b = el("button","btn2 morebtn",`Mostra altri annunci (${LIST.length - shown} rimasti)`); b.type = "button"; b.addEventListener("click", () => showMore(shown + PAGE)); list.appendChild(b); }
+}
+function revealCard(j){ const i = LIST.indexOf(j); if (i >= shown) showMore(i + 1); return $("job-" + j._i); }
+
+/* ---------- mappa ---------- */
+const MAP = DATA.map;
+let vb0 = null, vb = null, mapJobs = [], selJob = null, dragging = null;
+const svgEl = () => $("map");
+function project(lat, lon){
+  const r = Math.PI/180, p = MAP.proj, phi1 = p.phi1*r, phi2 = p.phi2*r, phi0 = p.phi0*r;
+  const n = Math.log(Math.cos(phi1)/Math.cos(phi2)) / Math.log(Math.tan(Math.PI/4+phi2/2)/Math.tan(Math.PI/4+phi1/2));
+  const F = Math.cos(phi1)*Math.pow(Math.tan(Math.PI/4+phi1/2), n)/n;
+  const rho = F/Math.pow(Math.tan(Math.PI/4+lat*r/2), n), rho0 = F/Math.pow(Math.tan(Math.PI/4+phi0/2), n), th = n*(lon*r - p.lam0*r);
+  return [rho*Math.sin(th)*p.scale, -(rho0 - rho*Math.cos(th))*p.scale];
+}
+function clampVB(x, y, w){
+  w = Math.min(vb0[2], Math.max(vb0[2]/14, w)); const h = w*vb0[3]/vb0[2];
+  x = Math.min(vb0[0]+vb0[2]-w, Math.max(vb0[0], x)); y = Math.min(vb0[1]+vb0[3]-h, Math.max(vb0[1], y));
+  return [x, y, w, h];
+}
+function setVB(v){ vb = v; svgEl().setAttribute("viewBox", vb.map(n => n.toFixed(1)).join(" ")); drawDots(); }
+let animId = 0;
+function animateVB(target){
+  const id = ++animId;
+  if (reduced() || document.hidden) return setVB(target);
+  const from = vb.slice(), t0 = performance.now(), dur = 420;
+  const step = t => { if (id !== animId) return; const k = Math.min(1, (t - t0)/dur), e = 1 - Math.pow(1-k, 3); setVB(from.map((v,i) => v + (target[i]-v)*e)); if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+  setTimeout(() => { if (id === animId) setVB(target); }, dur + 80);  // arriva sempre alla vista finale
+}
+function zoomAt(f, cx, cy){ animateVB(clampVB(cx - (cx - vb[0])*f, cy - (cy - vb[1])*f, vb[2]*f)); }
+/* ---------- mappa dettagliata: cartografia vera (strade, città, confini) con i pallini raggruppati ---------- */
+const USE_L = !!(window.L && L.markerClusterGroup);
+let LMAP = null, LCL = null, LSEL = null; const LMARK = new Map();
+function dotIcon(j, on){
+  const sp = el("span","ldot" + (j.geo === "country" ? " approx" : "") + (on ? " on" : "")); sp.style.setProperty("--c", famColor(j.role_family));
+  return L.divIcon({className:"", html:sp, iconSize:[18,18], iconAnchor:[9,9]});
+}
+function clusterIcon(c){
+  const ms = c.getAllChildMarkers(), cnt = new Map(); ms.forEach(m => cnt.set(m.fam, (cnt.get(m.fam)||0) + 1));
+  let acc = 0; const parts = FAM_ORDER.filter(f => cnt.get(f)).map(f => { const from = acc; acc += 100*cnt.get(f)/ms.length; return `${famColor(f)} ${from.toFixed(1)}% ${acc.toFixed(1)}%`; });
+  const n = ms.length, sz = n < 10 ? 36 : n < 50 ? 44 : n < 200 ? 52 : 60;
+  const sp = el("span","lclu"); sp.style.cssText = `width:${sz}px;height:${sz}px;background:conic-gradient(${parts.join(",") || "var(--muted) 0 100%"})`; sp.appendChild(el("b", null, String(n)));
+  return L.divIcon({className:"", html:sp, iconSize:[sz,sz], iconAnchor:[sz/2,sz/2]});
+}
+function initLeaflet(){
+  $("map").style.display = "none"; document.querySelector(".zoom").hidden = true; $("lmap").hidden = false;
+  LMAP = L.map("lmap", {zoomSnap:.5, attributionControl:false, scrollWheelZoom:false, minZoom:3, maxZoom:18, worldCopyJump:true}).setView([50, 12], 4);
+  // cartografia OpenStreetMap: strade, città e confini a ogni livello di zoom, senza chiavi né account
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19,
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(LMAP);
+  L.control.attribution({prefix:false}).addTo(LMAP); LMAP.zoomControl.setPosition("topright");
+  // la mappa si riadatta quando il suo riquadro cambia misura (caricamento dei caratteri, finestra ridimensionata)
+  let fitT = 0; new ResizeObserver(() => { LMAP.invalidateSize(); clearTimeout(fitT); fitT = setTimeout(fitL, 120); }).observe($("lmap"));
+  LCL = L.markerClusterGroup({showCoverageOnHover:false, maxClusterRadius:46, spiderfyOnMaxZoom:true, iconCreateFunction:clusterIcon});
+  LMAP.addLayer(LCL);
+  // la rotella ingrandisce solo dopo un clic sulla mappa: così scorrendo la pagina la mappa non "cattura" il mouse
+  LMAP.on("click", () => LMAP.scrollWheelZoom.enable()); $("lmap").addEventListener("mouseleave", () => LMAP.scrollWheelZoom.disable());
+}
+function renderMapL(jobs){
+  LCL.clearLayers(); LMARK.clear(); LSEL = null;
+  const ms = [];
+  jobs.forEach(j => {
+    if (j.lat == null) return;
+    const m = L.marker([j.lat, j.lon], {icon:dotIcon(j, selJob === j), alt:`${j.title}, ${j.company}`, keyboard:true});
+    m.fam = j.role_family; m.bindTooltip(`${j.company}: ${j.title_it || j.title} (${j.score})`, {direction:"top", offset:[0,-8]});
+    m.on("click", () => selectJob(j, true)); LMARK.set(j, m); ms.push(m);
+  });
+  LCL.addLayers(ms); if (selJob && LMARK.has(selJob)) LSEL = selJob;
+}
+function markSelectedL(){
+  if (LSEL && LMARK.has(LSEL)) LMARK.get(LSEL).setIcon(dotIcon(LSEL, false));
+  LSEL = selJob && LMARK.has(selJob) ? selJob : null;
+  if (LSEL) LMARK.get(LSEL).setIcon(dotIcon(LSEL, true));
+}
+function fitL(){
+  const pts = mapJobs.filter(j => j.lat != null).map(j => [j.lat, j.lon]);
+  if (!pts.length){ LMAP.setView([50, 12], 4); return; }
+  LMAP.fitBounds(L.latLngBounds(pts), {padding:[34,34], maxZoom: state.city ? 12 : state.country ? 8 : 6, animate:!reduced() && !document.hidden});
+}
+function fitToFilter(){
+  if (USE_L && LMAP) return fitL();
+  if (!vb0) return;
+  // la vista stringe sempre sugli annunci filtrati: tutta l'area se nessun filtro, il paese o la città se scelti
+  const pts = mapJobs.filter(j => j.lat != null).map(j => project(j.lat, j.lon));
+  if (!pts.length){ animateVB(vb0.slice()); return; }
+  let [x0,y0] = pts[0], x1 = x0, y1 = y0;
+  pts.forEach(([x,y]) => { x0 = Math.min(x0,x); y0 = Math.min(y0,y); x1 = Math.max(x1,x); y1 = Math.max(y1,y); });
+  const pad = state.city ? 40 : state.country ? 60 : 55, w = Math.max(x1-x0+pad*2, (y1-y0+pad*2)*vb0[2]/vb0[3], state.city ? 90 : state.country ? 160 : 240);
+  const h = w*vb0[3]/vb0[2];
+  animateVB(clampVB((x0+x1)/2 - w/2, (y0+y1)/2 - h/2, w));
+}
+function clientToSvg(ev){ const s = svgEl(), pt = s.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; const m = s.getScreenCTM(); return m ? pt.matrixTransform(m.inverse()) : {x:0,y:0}; }
+
+function initMap(){
+  $("mapbig").addEventListener("click", e => {
+    const on = document.body.classList.toggle("mapbig"); e.currentTarget.setAttribute("aria-pressed", String(on)); e.currentTarget.textContent = on ? "Riduci la mappa" : "Ingrandisci la mappa";
+    if (LMAP){ LMAP.invalidateSize(); fitL(); } if (on) $("mapbox").scrollIntoView({block:"start", behavior: reduced() ? "auto" : "smooth"});
+  });
+  if (USE_L){
+    initLeaflet();
+    const lg = $("maplegend"); FAM_ORDER.forEach(f => { const x = el("span"); const i = el("i"); i.style.background = famColor(f); x.append(i, FAMILIES[f]); lg.appendChild(x); });
+    const ap = el("span"); ap.append(el("i","ap"), "Città non indicata"); lg.appendChild(ap);
+    lg.appendChild(el("span", null, "Il numero nel cerchio: annunci in quella zona. Clicca per avvicinarti."));
+    return;
+  }
+  if (!MAP || !MAP.countries || !MAP.countries.length){ $("mapsec").hidden = true; return; }
+  vb0 = MAP.viewBox.slice(); vb = vb0.slice();
+  const g = $("countries");
+  MAP.countries.forEach(c => { const p = svgn("path",{d:c.d, class:"land"}); p.dataset.it = c.it; const t = svgn("title",{}); t.textContent = c.it; p.appendChild(t); g.appendChild(p); });
+  const s = svgEl(); s.setAttribute("viewBox", vb.join(" "));
+  const lg = $("maplegend");
+  FAM_ORDER.forEach(f => { const x = el("span"); const i = el("i"); i.style.background = famColor(f); x.append(i, FAMILIES[f]); lg.appendChild(x); });
+  const ap = el("span"); ap.append(el("i","ap"), "Città non indicata"); lg.appendChild(ap);
+  $("zin").addEventListener("click", () => zoomAt(0.55, vb[0]+vb[2]/2, vb[1]+vb[3]/2));
+  $("zout").addEventListener("click", () => zoomAt(1/0.55, vb[0]+vb[2]/2, vb[1]+vb[3]/2));
+  $("zreset").addEventListener("click", () => animateVB(vb0.slice()));
+  s.addEventListener("dblclick", e => { e.preventDefault(); const p = clientToSvg(e); zoomAt(0.5, p.x, p.y); });
+  s.addEventListener("wheel", e => { if (!e.ctrlKey && !e.metaKey) return; e.preventDefault(); const p = clientToSvg(e); setVB(clampVB(p.x - (p.x - vb[0])*(e.deltaY < 0 ? .8 : 1.25), p.y - (p.y - vb[1])*(e.deltaY < 0 ? .8 : 1.25), vb[2]*(e.deltaY < 0 ? .8 : 1.25))); }, {passive:false});
+  s.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse" || e.target.closest(".dot,.clabel")) return; dragging = {x:e.clientX, y:e.clientY, vb:vb.slice(), moved:false}; s.setPointerCapture(e.pointerId); s.classList.add("drag"); });
+  s.addEventListener("pointermove", e => {
+    if (!dragging) return; const m = s.getScreenCTM(); if (!m) return;
+    const dx = (e.clientX-dragging.x)/m.a, dy = (e.clientY-dragging.y)/m.d;
+    if (Math.abs(e.clientX-dragging.x) + Math.abs(e.clientY-dragging.y) > 3) dragging.moved = true;
+    vb = clampVB(dragging.vb[0]-dx, dragging.vb[1]-dy, vb[2]); s.setAttribute("viewBox", vb.map(n => n.toFixed(1)).join(" "));
+  });
+  const end = () => { if (!dragging) return; const moved = dragging.moved; dragging = null; s.classList.remove("drag"); if (moved) drawDots(); };
+  s.addEventListener("pointerup", end); s.addEventListener("pointercancel", end);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closePop(); });
+}
+
+function drawDots(){
+  if (USE_L && LMAP) return markSelectedL();
+  const gd = $("dots"), gl = $("labels"); gd.replaceChildren(); gl.replaceChildren();
+  if (!vb) return;
+  const k = vb[2]/vb0[2], groups = new Map();
+  mapJobs.forEach(j => { if (j.lat == null) return; const key = j.lat.toFixed(2)+","+j.lon.toFixed(2); (groups.get(key) || groups.set(key, []).get(key)).push(j); });
+  const ranked = [...groups].sort((a,b) => b[1].length - a[1].length);
+  const boxes = [];  // etichette già piazzate: le altre non si sovrappongono
+  const hits = (b) => boxes.some(o => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]);
+  const dotsBox = [], clusters = [];
+  ranked.forEach(([key, list]) => {
+    list.sort((a,b) => (b.score||0)-(a.score||0));
+    const [x0, y0] = project(list[0].lat, list[0].lon);
+    let maxR = 0;
+    list.forEach((j, i) => {
+      const ang = i*2.39996, rad = list.length > 1 ? 10.5*k*Math.sqrt(i+0.35) : 0; maxR = Math.max(maxR, rad);
+      const c = svgn("circle",{cx:(x0 + rad*Math.cos(ang)).toFixed(2), cy:(y0 + rad*Math.sin(ang)).toFixed(2), r:(6.5*k).toFixed(2),
+        class:`dot${j.geo === "country" ? " approx" : ""}${selJob === j ? " on" : ""}`, tabindex:"0", role:"button",
+        "aria-label":`${j.title}, ${j.company}, ${place(j)}, score ${j.score}`});
+      c.style.fill = famColor(j.role_family); c.style.stroke = j.geo === "country" ? famColor(j.role_family) : "";
+      const t = svgn("title",{}); t.textContent = `${j.company}: ${j.title} (${j.score})`; c.appendChild(t);
+      c.addEventListener("click", ev => { ev.stopPropagation(); openPop(j, c); });
+      c.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); openPop(j, c); } });
+      gd.appendChild(c);
+    });
+    dotsBox.push([x0, y0, maxR + 6.5*k]);
+    clusters.push([key, list, x0, y0, maxR]);
+  });
+  // seconda passata: etichette, per importanza, solo dove non coprono pallini o altre etichette
+  clusters.forEach(([key, list, x0, y0, maxR]) => {
+    if (list[0].geo === "city"){
+      const name = CITY_NAMES.get(key) || cleanCity(list[0].city);
+      const fs = 12.5*k, w = fs*0.6*(name.length + 3), gap = maxR + 9*k;
+      // prova a destra, poi a sinistra, sopra e sotto: la prima posizione libera vince
+      const tries = [[x0+gap, y0+4.3*k, "start"], [x0-gap, y0+4.3*k, "end"], [x0, y0-gap, "middle"], [x0, y0+gap+fs*.8, "middle"]];
+      let spot = null;
+      for (const [tx0, ty0, anchor] of tries){
+        const left = anchor === "start" ? tx0 : anchor === "end" ? tx0 - w : tx0 - w/2;
+        const b = [left, ty0 - fs, left + w, ty0 + fs*.3];
+        const overDot = dotsBox.some(([dx, dy, r]) => dx + r > b[0] && dx - r < b[2] && dy + r > b[1] && dy - r < b[3] && !(dx === x0 && dy === y0));
+        if (!hits(b) && !overDot){ spot = [tx0, ty0, anchor, b]; break; }
+      }
+      if (!spot) return;  // niente spazio: la città si legge passando sui pallini o dalla lista a destra
+      boxes.push(spot[3]);
+      const tx = svgn("text",{x:spot[0].toFixed(2), y:spot[1].toFixed(2), "text-anchor":spot[2], class:"clabel", "font-size":fs.toFixed(2), "stroke-width":(3.5*k).toFixed(2)});
+      tx.append(name + " ");
+      const cn = svgn("tspan",{class:"cnt"}); cn.textContent = String(list.length); tx.appendChild(cn);
+      tx.addEventListener("click", ev => { ev.stopPropagation(); state.country = list[0].country; state.city = key; update("city"); });
+      gl.appendChild(tx);
+    }
+  });
+}
+
+function closePop(){}
+function fact(k, v, cls){ const f = el("div","fact" + (cls ? " " + cls : "")); f.append(el("div","k",k), el("div","v",v)); return f; }
+function block(k, items, asText){
+  if (!items || (Array.isArray(items) && !items.length)) return null;
+  const b = el("div","blk"); b.appendChild(el("div","k",k));
+  if (asText){ b.appendChild(el("p", null, items)); return b; }
+  const ul = el("ul"); items.forEach(x => ul.appendChild(el("li", null, x))); b.appendChild(ul); return b;
+}
+function meter(k, v, onClick){
+  const m = el(onClick ? "button" : "div","meter"); if (onClick){ m.type = "button"; m.addEventListener("click", onClick); m.title = "Apri il dettaglio"; }
+  const bar = el("i"), fill = el("b"); fill.style.width = Math.max(0, Math.min(100, v)) + "%"; bar.appendChild(fill);
+  m.append(el("div","k",k), el("div","v",String(v)), bar); return m;
+}
+const NARROW = () => matchMedia("(max-width:1180px)").matches;
+/* dettaglio dell'annuncio scelto: a destra su schermo largo, in una finestra su schermo stretto */
+function fillDetail(host, j){
+  host.replaceChildren(); host.classList.add("dbody"); host.style.setProperty("--fam", famColor(j.role_family));
+  const head = el("div","ph"), info = el("div");
+  info.append(el("div","co",j.company), el("h3","dt display",j.title_it || j.title));
+  if (j.title_it) info.appendChild(el("div","orig","Titolo originale: " + j.title));
+  info.appendChild(el("div","pl",[place(j), "pubblicato il " + fmtD(j.posted_at), j.source].filter(Boolean).join(" · ")));
+  head.append(logoBox(j, 52), info, starBtn(j)); host.appendChild(head);
+  const tg = el("div","facts2"); tg.appendChild(famTag(j)); if (isNew(j) && SOME_OLD()) tg.appendChild(el("span","newtag","Nuovo")); host.appendChild(tg);
+  const ms = el("div","meters"); ms.appendChild(meter("Aderenza al profilo", j.score||0));
+  if (j.cv) ms.appendChild(meter("Match con il CV", j.cv.score, () => openCvModal(j)));
+  host.appendChild(ms);
+  if (j.ai_fit != null){
+    const v = el("div","verdict"), t = el("div","t"); t.append(el("b",null,"Il parere di Tina"), el("span","notr",j.ai_why || "Annuncio letto e valutato.")); const f = el("div","fit",String(j.ai_fit)); f.title = "Quanto è adatto a te secondo Tina, la giudice AI";
+    v.append(mascot("vaglio"), t, f); host.appendChild(v);
+  }
+  const facts = el("div","facts");
+  facts.appendChild(fact("Livello", j.level || "Non indicato"));
+  if (j.contract) facts.appendChild(fact("Contratto", j.contract));
+  if (j.mode) facts.appendChild(fact("Modalità", j.mode));
+  if (j.languages) facts.appendChild(fact("Lingue", j.languages));
+  if (j.salary) facts.appendChild(fact("RAL", j.salary));
+  if (j.travel) facts.appendChild(fact("Trasferte", j.travel.replace("Trasferte ","")));
+  if (j.industry) facts.appendChild(fact("Settore", j.industry));
+  host.appendChild(facts);
+  const ex = block("In breve", j.excerpt, true); if (ex) host.appendChild(ex);
+  if (j.skills && j.skills.length){
+    const b = el("div","blk"), t = el("div","tags"), has = (j.cv||{}).matched || [], miss = (j.cv||{}).missing || [];
+    b.appendChild(el("div","k", j.cv ? "Skill richieste (verde: nel tuo CV, arancio: manca)" : "Skill richieste"));
+    j.skills.forEach(x => t.appendChild(el("span","tag " + (has.includes(x) ? "ok" : miss.includes(x) ? "warn" : "sk"), x)));
+    b.appendChild(t); host.appendChild(b);
+  }
+  [block("Studi richiesti", j.education), block("Documenti e requisiti", j.documents)].forEach(b => b && host.appendChild(b));
+  if ((j.reasons||[]).length){ const b = el("div","blk"), t = el("div","tags"); b.appendChild(el("div","k","Perché questo punteggio")); j.reasons.forEach(r => t.appendChild(el("span","tag" + (r.k === "warn" ? " warn" : ""), r.t))); b.appendChild(t); host.appendChild(b); }
+  if (j.geo === "country") host.appendChild(el("p","nopos","L'annuncio non indica la città: sulla mappa il pallino è posizionato nel paese."));
+  if (isFav(j)) host.appendChild(trackBox(j));
+  const act = el("div","acts");
+  const l = el("a","open","Apri annuncio"); l.href = safeUrl(j.url); l.target = "_blank"; l.rel = "noopener noreferrer nofollow"; act.appendChild(l);
+  if (j.cv){ const cb = el("button","btn2","Dettaglio match CV"); cb.type = "button"; cb.addEventListener("click", () => openCvModal(j)); act.appendChild(cb); }
+  if (HUB.active && IS_SERVER){ const tb = el("button","btn2","Adatta il CV a questo annuncio"); tb.type = "button"; tb.addEventListener("click", e => openEditor(HUB.active, j, e.currentTarget)); act.appendChild(tb); }
+  const hb = el("button","hide", isHidden(j) ? "Ripristina" : "Non mi interessa"); hb.type = "button"; hb.addEventListener("click", () => { if (!$("modal").hidden) closeModal(); toggleHidden(j); }); act.appendChild(hb);
+  host.appendChild(act);
+}
+function showDetail(j, asModal){
+  if (!asModal){ fillDetail($("detail"), j); return; }
+  const m = $("modal"), sh = $("sheet"); sh.replaceChildren(); sh.classList.remove("wide"); m.hidden = false; document.body.style.overflow = "hidden";
+  const x = el("button","x","×"); x.type = "button"; x.setAttribute("aria-label","Chiudi"); x.addEventListener("click", closeModal);
+  const host = el("div","detailhost"); fillDetail(host, j); sh.append(x, host); x.focus();
+}
+function selectJob(j, fromMap){
+  selJob = j;
+  document.querySelectorAll(".row.on").forEach(r => r.classList.remove("on"));
+  const r = fromMap ? revealCard(j) : $("job-" + j._i);
+  if (r){ r.classList.add("on"); if (fromMap && !NARROW()) r.scrollIntoView({block:"nearest", behavior: reduced() ? "auto" : "smooth"}); }
+  showDetail(j, NARROW());
+  drawDots();
+  if (!fromMap && LMAP && LMARK.has(j) && !NARROW()){ const ll = LMARK.get(j).getLatLng(); if (!LMAP.getBounds().pad(-0.1).contains(ll)) LMAP.panTo(ll, {animate:!reduced()}); }
+}
+const openPop = j => selectJob(j, true);
+/* dopo ogni cambio di filtri: resta selezionato l'annuncio di prima se è ancora in elenco, altrimenti il primo */
+function pickDefault(){
+  const host = $("detail");
+  if (!LIST.length){ selJob = null; host.replaceChildren(el("div","dempty","Nessun annuncio da mostrare.")); return; }
+  if (!LIST.includes(selJob)) selJob = LIST[0];
+  const r = $("job-" + selJob._i); if (r) r.classList.add("on");
+  fillDetail(host, selJob);
+}
+function renderMap(jobs){
+  if (USE_L && LMAP){
+    mapJobs = jobs; renderMapL(jobs);
+    const pl = jobs.filter(j => j.lat != null).length;
+    $("mapcount").textContent = jobs.length ? `${pl} sulla mappa` + (jobs.length - pl ? ` · ${jobs.length - pl} senza località` : "") : "";
+    return;
+  }
+  if (!MAP || !vb0) return;
+  mapJobs = jobs;
+  const placed = jobs.filter(j => j.lat != null).length, byC = new Map(); jobs.forEach(j => { if (j.country) byC.set(j.country, (byC.get(j.country)||0)+1); });
+  document.querySelectorAll("#countries .land").forEach(p => { p.classList.toggle("has", (byC.get(p.dataset.it)||0) > 0); p.classList.toggle("sel", state.country === p.dataset.it); });
+  $("mapcount").textContent = jobs.length ? `${placed} sulla mappa` + (jobs.length - placed ? ` · ${jobs.length - placed} senza località` : "") : "";
+  drawDots();
+}
+
+/* ---------- CV: caricamento, leggibilità, dettaglio per annuncio ---------- */
+const CV = DATA.cv;
+function cvMsg(t){ const m = $("cvmsg"); m.hidden = !t; m.textContent = t || ""; }
+async function sendCv(payload){
+  cvMsg("Sto leggendo il CV e ricalcolando i punteggi...");
+  try {
+    const r = await fetch("/api/cv", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+    const d = await r.json();
+    if (!d.ok){ cvMsg(d.error || "Caricamento non riuscito."); return; }
+    location.reload();
+  } catch (e) { cvMsg("Job Radar non risponde: rilancia «Avvia Job Radar.bat»."); }
+}
+function renderCV(){
+  const intro = $("cvintro"), act = $("cvact"); act.replaceChildren();
+  const btn = (label, cls, fn) => { const b = el("button","btn2" + (cls ? " " + cls : ""), label); b.type = "button"; b.addEventListener("click", fn); act.appendChild(b); return b; };
+  if (IS_SERVER){
+    btn(CV ? "Aggiungi un altro CV" : "Carica il CV (PDF, DOCX)", CV ? "" : "solid", () => $("cvfile").click());
+    btn("Incolla il testo", "quiet", () => { $("cvpaste").hidden = !$("cvpaste").hidden; });
+    $("cvfile").addEventListener("change", e => {
+      const f = e.target.files[0]; if (!f) return;
+      if (f.size > 8e6){ cvMsg("File troppo grande (massimo 8 MB)."); return; }
+      const rd = new FileReader(); rd.onload = () => sendCv({name:f.name, data:String(rd.result).split(",")[1]}); rd.readAsDataURL(f);
+    });
+    $("cvtextsend").addEventListener("click", () => { const t = $("cvtext").value.trim(); if (t.length < 200){ cvMsg("Testo troppo breve: incolla tutto il CV."); return; } sendCv({text:t}); });
+  }
+  renderHub(); renderCvSteps();
+  if (!CV){
+    intro.textContent = IS_SERVER
+      ? "Carica il CV: Job Radar lo confronta con ogni annuncio e dà un punteggio da 0 a 100, come farebbe un software di selezione. Il file resta su questo computer."
+      : "Per caricare il CV e vedere il punteggio per ogni annuncio apri Job Radar da «Avvia Job Radar.bat».";
+    return;
+  }
+  intro.textContent = `CV in uso: ${CV.filename || "caricato"}. Ogni annuncio ha il suo punteggio di match: clicca «Match CV» su una scheda per il dettaglio. Il file resta su questo computer.`;
+  const g = $("cvgrid"); g.hidden = false; g.replaceChildren();
+  const sc = el("div","cvscore"), big = el("div","big", String((CV.readiness||{}).score ?? "-")); big.appendChild(el("small",null," /100"));
+  sc.append(el("div","k","Leggibilità per i software di selezione"), big, el("p",null,"Quanto bene un sistema automatico riesce a leggere e classificare il CV."));
+  sc.querySelector(".k").style.cssText = "font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px";
+  const facts = el("div","cvfacts");
+  const row = (k, v) => { if (!v) return; const x = el("div"); x.append(el("b",null,k + ": "), v); facts.appendChild(x); };
+  row("Esperienza rilevata", CV.years ? `circa ${String(CV.years).replace(".", ",")} anni` : "non rilevata");
+  row("Studi", ["non rilevati","laurea triennale","laurea magistrale"][CV.education_level||0] + ((CV.education_fields||[]).length ? " (" + CV.education_fields.join(", ") + ")" : ""));
+  row("Lingue", Object.entries(CV.languages||{}).map(([l,v]) => `${l} ${v === "DICHIARATA" ? "" : v}`.trim()).join(", "));
+  row("Ruoli riconosciuti", (CV.families||[]).map(f => FAMILIES[f]||f).join(", "));
+  row("Skill trovate", [...(CV.skills||[]), ...(CV.concepts||[])].slice(0, 12).join(", "));
+  row("Lunghezza", `${CV.words} parole`);
+  const ul = el("ul","checks");
+  ((CV.readiness||{}).checks||[]).slice().sort((a,b) => a.ok - b.ok).forEach(c => {
+    const li = el("li", c.ok ? "ok" : "no"); li.append(el("span","mk", c.ok ? "✓" : "!"), el("span",null,c.t));
+    if (c.fix) li.appendChild(el("span","fix",c.fix)); ul.appendChild(li);
+  });
+  g.append(sc, facts, ul);
+}
+/* ---------- personaggi: disegni SVG scritti qui, nessuna immagine esterna ---------- */
+const MASC = {
+  ada: `<svg viewBox="0 0 120 120" role="img" aria-label="Vale, l'assistente che fa l'intervista"><g class="bob">
+    <line x1="60" y1="20" x2="60" y2="8" stroke="#8A9BAB" stroke-width="3" stroke-linecap="round"/><circle class="glow" cx="60" cy="7" r="5" fill="#FFB84D"/>
+    <rect x="22" y="20" width="76" height="62" rx="22" fill="#36F2A0"/><rect x="31" y="30" width="58" height="40" rx="14" fill="#0A1A14"/>
+    <ellipse class="eye" cx="47" cy="47" rx="6" ry="7.5" fill="#FFFFFF"/><ellipse class="eye r" cx="73" cy="47" rx="6" ry="7.5" fill="#FFFFFF"/>
+    <circle cx="48.5" cy="48" r="2.6" fill="#0A1A14"/><circle cx="74.5" cy="48" r="2.6" fill="#0A1A14"/>
+    <path d="M50 60q10 7 20 0" fill="none" stroke="#36F2A0" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="36" cy="57" r="3.5" fill="#FF8A9B" opacity=".7"/><circle cx="84" cy="57" r="3.5" fill="#FF8A9B" opacity=".7"/>
+    <path d="M18 48a42 42 0 0 1 84 0" fill="none" stroke="#223140" stroke-width="5" stroke-linecap="round"/><rect x="12" y="44" width="10" height="18" rx="5" fill="#223140"/><rect x="98" y="44" width="10" height="18" rx="5" fill="#223140"/>
+    <path d="M100 60q2 14-14 16" fill="none" stroke="#223140" stroke-width="3" stroke-linecap="round"/><circle cx="85" cy="76" r="3.5" fill="#FFB84D"/>
+    <rect x="38" y="84" width="44" height="28" rx="12" fill="#1F9E6C"/><rect x="50" y="90" width="20" height="14" rx="3" fill="#FFFFFF"/><path d="M54 95h12M54 99h8" stroke="#1F9E6C" stroke-width="2" stroke-linecap="round"/>
+    <g class="wave"><rect x="18" y="82" width="22" height="10" rx="5" fill="#36F2A0"/><circle cx="17" cy="84" r="6" fill="#36F2A0"/></g>
+    <rect x="80" y="86" width="22" height="10" rx="5" fill="#36F2A0"/></g></svg>`,
+  vaglio: `<svg viewBox="0 0 120 120" role="img" aria-label="Tina, la giudice che legge gli annunci"><g class="bob">
+    <circle cx="26" cy="34" r="11" fill="#E8EEF3"/><circle cx="22" cy="50" r="10" fill="#E8EEF3"/><circle cx="26" cy="66" r="9" fill="#E8EEF3"/>
+    <circle cx="94" cy="34" r="11" fill="#E8EEF3"/><circle cx="98" cy="50" r="10" fill="#E8EEF3"/><circle cx="94" cy="66" r="9" fill="#E8EEF3"/>
+    <path d="M30 26q30-22 60 0v10H30z" fill="#F6F9FB"/>
+    <rect x="28" y="24" width="64" height="58" rx="20" fill="#5AA9FF"/><rect x="36" y="34" width="48" height="36" rx="12" fill="#0B1626"/>
+    <ellipse class="eye" cx="49" cy="50" rx="5" ry="6.5" fill="#FFFFFF"/><ellipse class="eye r" cx="71" cy="50" rx="5" ry="6.5" fill="#FFFFFF"/>
+    <circle cx="49" cy="51" r="2.3" fill="#0B1626"/><circle cx="71" cy="51" r="2.3" fill="#0B1626"/>
+    <circle cx="49" cy="50" r="10" fill="none" stroke="#FFB84D" stroke-width="2.5"/><circle cx="71" cy="50" r="10" fill="none" stroke="#FFB84D" stroke-width="2.5"/><path d="M59 50h2" stroke="#FFB84D" stroke-width="2.5"/>
+    <path d="M53 64h14" stroke="#5AA9FF" stroke-width="3" stroke-linecap="round"/>
+    <rect x="36" y="84" width="48" height="28" rx="10" fill="#17304F"/><path d="M52 84l8 10 8-10z" fill="#FFFFFF"/><path d="M54 88l6 5 6-5-6-3z" fill="#FF8A9B"/>
+    <rect x="16" y="86" width="22" height="10" rx="5" fill="#5AA9FF"/>
+    <g class="gavel"><rect x="80" y="86" width="16" height="10" rx="5" fill="#5AA9FF"/><rect x="92" y="62" width="5" height="32" rx="2.5" fill="#C58A4A"/><rect x="82" y="54" width="25" height="13" rx="4" fill="#8A5A2B"/><rect x="82" y="58" width="25" height="3" fill="#FFB84D"/></g>
+    <rect x="98" y="104" width="18" height="6" rx="3" fill="#8A5A2B"/></g></svg>`};
+function mascot(who){ const x = el("span","masc notr"); x.innerHTML = MASC[who]; return x; }
+function says(who, name, text){ const r = el("div","says"), b = el("div","bubble"); b.append(el("b","notr",name), text); r.append(mascot(who), b); return r; }
+/* ---------- intervista: che lavoro cerchi, chi sei; l'AI propone i gruppi di ruoli, tu li confermi ---------- */
+const PROFILE = DATA.profile;
+const WZ_LANGS = [["it","Italiano"],["en","Inglese"],["es","Spagnolo"],["fr","Francese"],["de","Tedesco"],["pt","Portoghese"],["nl","Olandese"]];
+const WZ_YEARS = [[0,"Meno di 1 anno"],[2,"1-3 anni"],[5,"4-6 anni"],[8,"7-10 anni"],[12,"Più di 10"]];
+const WZ_LEVEL = [["","Coerente con la mia esperienza"],["stage","Stage o primo impiego"],["junior","Junior"],["mid","Mid"],["senior","Senior"]];
+const WZ_COUNTRIES = ["Italia","Spagna","Francia","Germania","Regno Unito","Irlanda","Paesi Bassi","Belgio","Svizzera","Portogallo","Austria","Lussemburgo","Svezia","Danimarca","Norvegia","Finlandia","Polonia","Repubblica Ceca","Ungheria","Romania","Grecia","Estonia","Lettonia","Lituania","Croazia","Slovenia","Slovacchia","Bulgaria","Malta","Cipro"];
+const TIER = {1:"Quello che cerchi", 2:"Ruoli vicini", 3:"Ruoli ponte"};
+function wzSheet(title, sub){
+  const m = $("modal"), sh = $("sheet"); sh.replaceChildren(); sh.classList.add("wide"); m.hidden = false; document.body.style.overflow = "hidden";
+  if (PROFILE){ const x = el("button","x","×"); x.type = "button"; x.setAttribute("aria-label","Chiudi"); x.addEventListener("click", closeModal); sh.appendChild(x); }
+  sh.append(el("h3","display",title), says("ada", "Vale", sub)); return sh;
+}
+function wzChips(host, items, get, set, multi){
+  const row = el("div","chips"); host.appendChild(row);
+  const paint = () => { row.replaceChildren(); items.forEach(([v, l]) => { const b = el("button","chip",l); b.type = "button"; const on = multi ? get().includes(v) : get() === v; b.setAttribute("aria-pressed", String(on));
+    b.addEventListener("click", () => { if (multi){ const a = get().slice(); const i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else a.push(v); set(a); } else set(v); paint(); }); row.appendChild(b); }); };
+  paint();
+}
+function openInterview(prev){
+  const a = Object.assign({desired:"", years:2, level:"", languages:["it","en"], countries:[], education:"", strengths:"", avoid:"", current:"", prefer:""}, prev || (PROFILE && PROFILE.answers) || {});
+  const sh = wzSheet(PROFILE ? "La mia ricerca" : "Benvenuta, benvenuto su Job Radar", "Ciao, sono Vale. Ti faccio poche domande per capire che lavoro cerchi e cosa sai fare. Poi ti propongo i ruoli da cercare, anche quelli a cui non avevi pensato, e tu scegli quali tenere.");
+  const q = (label, hint) => { const d = el("div","qa"); d.appendChild(el("div","ql",label)); if (hint) d.appendChild(el("p","hint",hint)); sh.appendChild(d); return d; };
+  const q1 = q("1. Che lavoro vorresti fare?", "Scrivilo con parole tue: ruolo, cosa vorresti fare ogni giorno, tipo di azienda. Anche se è diverso da quello che fai ora: la ricerca parte da ciò che desideri.");
+  const ta = el("textarea"); ta.value = a.desired; ta.placeholder = "Esempio: vorrei lavorare come business analyst o consulente per startup e innovazione. Mi piace fare analisi di mercato e business plan, seguire progetti dall'idea al lancio..."; ta.setAttribute("aria-label","Che lavoro cerchi"); q1.appendChild(ta);
+  const q2 = q("2. Quanta esperienza di lavoro hai?"); wzChips(q2, WZ_YEARS, () => a.years, v => { a.years = v; });
+  const q3 = q("3. Che livello cerchi?"); wzChips(q3, WZ_LEVEL, () => a.level, v => { a.level = v; });
+  const q4 = q("4. In che lingue puoi lavorare?", "Gli annunci che richiedono una lingua che non parli vengono scartati."); wzChips(q4, WZ_LANGS, () => a.languages, v => { a.languages = v; }, true);
+  const q5 = q("5. Dove?", "Nessun paese selezionato = tutta Europa."); wzChips(q5, WZ_COUNTRIES.map(c => [c, c]), () => a.countries, v => { a.countries = v; }, true);
+  const inp = (host, val, ph, key) => { const i = el("input"); i.type = "text"; i.value = val; i.placeholder = ph; i.setAttribute("aria-label", key); i.addEventListener("input", () => { a[key] = i.value; }); host.appendChild(i); };
+  inp(q("6. Che lavoro fai adesso, o qual è stato l'ultimo?", "Serve a capire quali tue competenze si trasferiscono al lavoro che desideri."), a.current, "Esempio: technical sales di software, da due anni", "current");
+  inp(q("7. Che cosa hai studiato?"), a.education, "Esempio: laurea magistrale in Ingegneria Gestionale", "education");
+  inp(q("8. In che cosa sei più forte?", "Competenze, strumenti, cose che ti riescono bene."), a.strengths, "Esempio: analisi di mercato, business plan, Excel, parlare con i clienti", "strengths");
+  inp(q("9. Quali settori preferisci?", "Gli annunci di questi settori salgono in classifica."), a.prefer, "Esempio: telefonia, software, energia", "prefer");
+  inp(q("10. Quali settori o lavori vuoi escludere?", "Gli annunci di questi settori vengono tolti, anche se per il resto sarebbero adatti."), a.avoid, "Esempio: bancario, call center, vendita porta a porta", "avoid");
+  const q9 = q("11. Il tuo CV", CV ? `Uso anche il CV che hai caricato (${CV.filename || "CV"}): esperienze e competenze, senza i contatti.` : "Se carichi il CV (da «Il tuo CV» nella barra a sinistra) la proposta è più precisa. Puoi farlo anche dopo e rifare l'intervista.");
+  q9.querySelector(".hint").classList.add("notr");
+  const foot = el("div","wz-foot"), go = el("button","btn2 solid","Proponimi i ruoli da cercare"), msg = el("span","cvmsg"); go.type = "button"; msg.style.margin = "0";
+  go.addEventListener("click", async () => {
+    a.desired = ta.value.trim(); if (a.desired.length < 8){ msg.textContent = "Scrivi almeno una frase sul lavoro che cerchi."; ta.focus(); return; }
+    if (!a.languages.length){ msg.textContent = "Scegli almeno una lingua."; return; }
+    go.disabled = true; go.textContent = "Sto ragionando sul tuo profilo..."; msg.textContent = "";
+    let r; try { r = await hubPost("/api/profile/build", {answers:a}); } catch (e) { r = {ok:false, error:"Job Radar non risponde."}; }
+    go.disabled = false; go.textContent = "Proponimi i ruoli da cercare";
+    if (!r.ok){ msg.textContent = r.error || "Non riuscito."; return; }
+    openProfileReview(r.profile);
+  });
+  foot.append(go, msg); sh.appendChild(foot); ta.focus();
+}
+function openProfileReview(p){
+  const sh = wzSheet("Ecco cosa cercherei per te", "Ho ragionato sulle tue risposte. Togli la spunta ai gruppi che non ti interessano o che non c'entrano: cerco solo quelli attivi. Poi passo gli annunci a Tina, la giudice, che li legge uno per uno. Puoi tornare qui quando vuoi da «La mia ricerca».");
+  if (p.ai_error) sh.appendChild(el("p","cvmsg","L'AI non ha risposto, quindi la ricerca usa solo le parole che hai scritto, senza allargarla ai ruoli vicini. Puoi riprovare più tardi da «La mia ricerca»."));
+  if (p.summary) sh.appendChild(el("p","atsnote notr",p.summary));
+  sh.appendChild(el("h4",null,"Gruppi di ruoli"));
+  p.clusters.forEach(c => {
+    const box = el("div","clu" + (c.on === false ? " off" : "")), cb = el("input"); cb.type = "checkbox"; cb.checked = c.on !== false; cb.id = "clu-" + c.id;
+    cb.addEventListener("change", () => { c.on = cb.checked; box.classList.toggle("off", !cb.checked); });
+    const nm = el("label","nm"); nm.htmlFor = cb.id; nm.append(el("span","notr",c.name), el("span","tier",TIER[c.tier] || TIER[2]));
+    box.append(cb, nm, el("div","why notr",c.why || ""), el("div","tt notr",[...c.titles_en, ...c.titles_it].join(" · ")));
+    sh.appendChild(box);
+  });
+  const editable = (title, hint, key, ph) => {
+    sh.appendChild(el("h4",null,title)); sh.appendChild(el("p","sub",hint));
+    const row = el("div","chips"); row.style.flexWrap = "wrap"; sh.appendChild(row);
+    const paint = () => { row.replaceChildren(); p[key].forEach((w, i) => { const t = el("span","tag sk notr",w); const x = el("button","rm","×"); x.type = "button"; x.setAttribute("aria-label","Togli " + w); x.addEventListener("click", () => { p[key].splice(i, 1); paint(); }); t.appendChild(x); row.appendChild(t); });
+      const add = el("input"); add.type = "text"; add.placeholder = ph; add.style.cssText = "min-width:180px;background:var(--surface2);color:var(--text);border:1px solid var(--line);border-radius:99px;padding:6px 12px;font:inherit;font-size:13px"; add.setAttribute("aria-label", ph);
+      add.addEventListener("keydown", e => { if (e.key === "Enter" && add.value.trim()){ p[key].push(add.value.trim()); paint(); row.querySelector("input").focus(); } }); row.appendChild(add); };
+    paint();
+  };
+  editable("Competenze e parole chiave", "Gli annunci che le citano salgono di punteggio. Togli quelle che non ti appartengono, aggiungi le tue (Invio per confermare).", "skills", "Aggiungi una competenza");
+  p.prefer_words = p.prefer_words || [];
+  editable("Settori preferiti", "Gli annunci che citano queste parole salgono in classifica.", "prefer_words", "Aggiungi una parola");
+  editable("Settori e lavori esclusi", "Un annuncio che cita queste parole nel titolo, o più volte nel testo, viene tolto. Anche Tina toglie gli annunci di questi settori.", "avoid_words", "Aggiungi una parola da escludere");
+  const foot = el("div","wz-foot"), ok = el("button","btn2 solid","Conferma e cerca gli annunci"), back = el("button","btn2 quiet","Modifica le risposte"), msg = el("span","cvmsg"); ok.type = back.type = "button"; msg.style.margin = "0";
+  back.addEventListener("click", () => openInterview(p.answers));
+  ok.addEventListener("click", async () => {
+    ok.disabled = true; ok.textContent = "Salvo...";
+    let r; try { r = await hubPost("/api/profile/save", {profile:p}); } catch (e) { r = {ok:false, error:"Job Radar non risponde."}; }
+    if (!r.ok){ ok.disabled = false; ok.textContent = "Conferma e cerca gli annunci"; msg.textContent = r.error || "Non riuscito."; return; }
+    location.href = "/?auto=1";
+  });
+  foot.append(ok, back, msg, el("span","sub", p.provider ? "Proposta preparata con: " + p.provider : "")); foot.lastChild.style.margin = "0"; foot.lastChild.classList.add("notr");
+  sh.appendChild(foot);
+}
+/* AI gratuita sul computer (modello open source): si scarica una volta, poi traduce e riscrive senza inviare nulla fuori */
+let AI = null;
+async function aiStatus(){ try { AI = await (await fetch("/api/ai/status", {cache:"no-store"})).json(); } catch (e) { AI = null; } return AI; }
+function aiControl(host, label, run){
+  host.replaceChildren(); if (!AI || !AI.engine) return;
+  if (AI.model){ const b = el("button","btn2",label); b.type = "button"; b.addEventListener("click", () => run(b)); host.appendChild(b); return; }
+  const gb = String(AI.size_gb).replace(".", ","), b = el("button","btn2",`Scarica l'AI gratuita (${gb} GB, una volta sola)`), note = el("span","cvmsg"); b.type = "button"; note.style.margin = "0";
+  const tick = async () => {
+    await aiStatus(); if (!AI) return;
+    if (AI.model) return aiControl(host, label, run);
+    if (AI.downloading != null){ b.disabled = true; b.textContent = `Scarico il modello: ${String(AI.downloading).replace(".", ",")}%`; setTimeout(tick, 2000); }
+    else { b.disabled = false; b.textContent = `Scarica l'AI gratuita (${gb} GB, una volta sola)`; note.textContent = AI.error || ""; }
+  };
+  b.addEventListener("click", async () => { b.disabled = true; try { await fetch("/api/ai/download", {method:"POST"}); } catch (e) {} tick(); });
+  host.append(b, note); if (AI.downloading != null) tick();
+}
+/* percorso del CV: valutazione, miglioramento, traduzione, adattamento a un annuncio */
+function renderCvSteps(){
+  const host = $("cvsteps"); host.replaceChildren();
+  const step = (n, title, text, wide) => { const c = el("div","cvstep" + (wide ? " wide" : "")); c.append(el("div","n",n), el("h3","display",title), el("p",null,text)); host.appendChild(c); return c; };
+  const act = HUB.items.find(it => it.id === HUB.active);
+  if (!CV || !act){
+    step("1", "Carica", "Carica il CV in PDF o DOCX con il pulsante qui sopra. Resta su questo computer.");
+    step("2", "Valutazione", "Job Radar dà un voto da 0 a 100 a come i software di selezione leggono il CV e ti dice cosa sistemare.");
+    step("3", "Migliora", "Apri il CV blocco per blocco, con i consigli accanto, e scarichi la versione corretta con la stessa impaginazione.");
+    step("4", "Traduci", "Traduzione italiano-inglese fatta sul tuo computer, da rileggere e correggere prima di generare il file.");
+    step("5", "Adatta a un annuncio", "Per ogni annuncio vedi quanto il CV è in linea, cosa manca e crei in un clic la versione adattata.");
+    return;
+  }
+  const btn = (c, label, cls, fn) => { const b = el("button","btn2" + (cls ? " " + cls : ""), label); b.type = "button"; b.addEventListener("click", fn); c.appendChild(b); return b; };
+  const canEdit = IS_SERVER && (act.ext === ".pdf" || act.ext === ".docx");
+  const s2 = step("1", "Migliora il CV", "Job Radar apre il CV blocco per blocco con i consigli della valutazione qui sopra. Correggi il testo e ottieni un nuovo file con la stessa impaginazione.");
+  if (canEdit) btn(s2, "Apri i consigli e modifica", "solid", e => openEditor(act.id, null, e.currentTarget));
+  const s3 = step("2", "Traduci il CV", `Il CV in uso è in ${LANGS[act.lang] || act.lang}. La traduzione avviene sul tuo computer: la rileggi, la correggi e scarichi il file tradotto, uguale nell'impaginazione.`);
+  if (canEdit){
+    btn(s3, `Traduci in ${act.lang === "it" ? "inglese" : "italiano"}`, "solid", e => openTranslate(act, e.currentTarget));
+    const ai = el("div","facts2"); s3.appendChild(ai); aiControl(ai, "Traduci con l'AI sul tuo computer (più naturale, più lenta)", b => openTranslate(act, b, "local"));
+  }
+  if (!canEdit) s2.appendChild(el("p","cvmsg", IS_SERVER ? "Per modificare e tradurre serve un CV in PDF o DOCX." : "Disponibile aprendo Job Radar da «Avvia Job Radar.bat»."));
+  const s4 = step("3", "Adatta il CV a un annuncio", "Gli annunci di adesso più in linea con il tuo CV. «Adatta» mostra cosa manca per quell'annuncio e crea la versione su misura. Lo stesso pulsante è nel dettaglio di ogni annuncio.", true);
+  const top = viewJobs("win").filter(j => j.cv).sort((a, b) => b.cv.score - a.cv.score || (b.score||0) - (a.score||0)).slice(0, 6);
+  if (!top.length) s4.appendChild(el("p","cvmsg","Fai una ricerca per vedere qui gli annunci."));
+  top.forEach(j => {
+    const r = el("div","fitrow"), t = el("div","t"); t.append(el("b","notr",j.title_it || j.title), el("span",null,[j.company, place(j)].filter(Boolean).join(" · ")));
+    const sc = el("div","sc",String(j.cv.score)); sc.title = "Match con il CV";
+    r.append(logoBox(j, 40), t, sc);
+    if (canEdit) btn(r, "Adatta", "", e => openEditor(act.id, j, e.currentTarget));
+    const see = btn(r, "Vedi", "quiet", () => { showTool(false); setView("win"); selectJob(j, true); });
+    see.setAttribute("aria-label", "Vedi l'annuncio");
+    s4.appendChild(r);
+  });
+}
+/* termine da scrivere nel CV per ogni parola chiave [in inglese, in italiano]; le altre si usano così come sono */
+const KW_TERM = {"Gare e RFP":["RFP management","gare e RFP"], "Partnership / canale":["channel partnerships","partnership di canale"], "AI / Machine learning":["AI","AI"], "Negoziazione":["negotiation","negoziazione"],
+  "Demo di prodotto":["product demos","demo di prodotto"], "Pipeline e forecast":["pipeline management and forecasting","gestione pipeline e forecast"], "API e integrazioni":["API integrations","integrazioni API"], "ERP / SAP":["ERP","ERP"],
+  "Power BI / Tableau":["Power BI","Power BI"], "Contratti B2B":["contract negotiation","contratti B2B"], "Upsell / cross-sell":["upsell and cross-sell","upsell e cross-sell"], "Discovery e qualifica":["discovery and qualification","discovery e qualifica"],
+  "Lavoro cross-funzionale":["cross-functional collaboration","lavoro cross-funzionale"], "Presentazioni":["presentations","presentazioni"], "Ciclo di vendita completo":["full sales cycle","ciclo di vendita completo"],
+  "Acquisizione nuovi clienti":["new business acquisition","acquisizione nuovi clienti"], "Analisi di mercato":["market analysis","analisi di mercato"], "Gestione clienti / relazioni":["client relationship management","gestione clienti"],
+  "Lead qualificati":["lead qualification","lead qualification"], "Fiere ed eventi":["trade shows and events","fiere ed eventi"], "Quota e target":["sales targets","target di vendita"], "Proposte e offerte":["commercial proposals","offerte commerciali"],
+  "NDA / DPA / contratti":["contracts (NDA, DPA)","contratti (NDA, DPA)"], "Clienti enterprise":["enterprise accounts","clienti enterprise"], "PMI / mid-market":["mid-market","PMI"], "Mercato internazionale":["international markets","mercati internazionali"],
+  "Localizzazione prodotto":["product localization","localizzazione prodotto"], "OEM e partner industriali":["OEM partners","OEM e partner industriali"], "Outreach/Salesloft":["Salesloft","Salesloft"], "Data analytics":["data analytics","data analytics"],
+  "Agile / Scrum":["Agile","Agile"], "Go-to-market":["go-to-market","go-to-market"]};
+const kwTerm = (label, lang) => (KW_TERM[label] || [label, label])[lang === "it" ? 1 : 0];
+async function openEditor(cvId, j, btn){
+  const label = btn ? btn.textContent : ""; if (btn){ btn.disabled = true; btn.textContent = "Apro il CV..."; }
+  let d; try { d = await hubPost("/api/hub/edit", {id:cvId, url:j ? j.url : ""}); } catch (e) { d = {ok:false, error:"Job Radar non risponde."}; }
+  if (btn){ btn.disabled = false; btn.textContent = label; }
+  if (!d.ok){ toast(d.error || "Non riesco ad aprire il CV."); return; }
+  const m = $("modal"), sh = $("sheet"); sh.replaceChildren(); sh.classList.add("wide"); m.hidden = false; document.body.style.overflow = "hidden";
+  const x = el("button","x","×"); x.type = "button"; x.setAttribute("aria-label","Chiudi"); x.addEventListener("click", closeModal);
+  const fmt = d.ext === ".pdf" ? "PDF" : "DOCX";
+  sh.append(x, el("h3","display", j ? "Adatta il CV a questo annuncio" : "Migliora il CV"));
+  const sub = el("p","sub"); if (j) sub.append(el("span","notr",`${d.job.title} · ${d.job.company}`), " · "); sub.append("CV: ", el("span","notr",d.name)); sh.appendChild(sub);
+  const ms = el("div","mscore"); ms.append(el("div","big",String(d.score)), el("div",null, j ? "su 100: quanto il CV di adesso è in linea con questo annuncio" : "su 100: quanto bene i software di selezione leggono il CV di adesso")); sh.appendChild(ms);
+  const todo = j ? (d.tips || []) : (d.checks || []).filter(c => !c.ok).map(c => `${c.t}: ${c.fix}`);
+  sh.appendChild(el("h4",null,"Cosa cambiare"));
+  if (todo.length){ const ul = el("ul"); todo.forEach(t => ul.appendChild(el("li",null,t))); sh.appendChild(ul); }
+  else sh.appendChild(el("p","sub", j ? "Il CV copre già i requisiti riconoscibili di questo annuncio: puoi comunque ritoccare il testo." : "Nessun problema di leggibilità: puoi comunque ritoccare il testo."));
+  const areas = new Map(), rows = new Map(), orig = new Map();
+  const touch = id => { const ta = areas.get(id); rows.get(id).classList.toggle("chg", ta.value.trim() !== orig.get(id)); count(); };
+  let foot, go, cnt;
+  const count = () => { const n = [...areas].filter(([id, ta]) => ta.value.trim() !== orig.get(id)).length; cnt.textContent = n === 1 ? "1 blocco modificato" : n + " blocchi modificati"; go.disabled = !n; };
+  if (j && (d.missing || []).length){
+    sh.appendChild(el("h4",null,"Parole chiave che l'annuncio chiede e il CV non ha: clicca solo quelle che hai davvero"));
+    const chips = el("div","chips"); chips.style.flexWrap = "wrap";
+    d.missing.forEach(k => {
+      const b = el("button","chip",k); b.type = "button"; b.setAttribute("aria-pressed","false");
+      b.addEventListener("click", () => {
+        const id = d.skills_seg; if (id == null || !areas.has(id)){ toast("Nel CV non trovo una sezione competenze: scrivi la parola a mano nel blocco giusto."); return; }
+        const on = b.getAttribute("aria-pressed") !== "true", ta = areas.get(id), term = kwTerm(k, d.lang); b.setAttribute("aria-pressed", String(on));
+        ta.value = on ? (ta.value.trim() ? ta.value.trim() + ", " + term : term) : ta.value.replace(new RegExp(",?\\s*" + term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), "");
+        rows.get(id).classList.add("hl"); touch(id); rows.get(id).scrollIntoView({block:"nearest"});
+      });
+      chips.appendChild(b);
+    });
+    sh.appendChild(chips);
+    sh.appendChild(el("p","sub", d.skills_seg != null ? "Le parole scelte finiscono nel blocco delle competenze, evidenziato in arancio qui sotto. Per farle pesare di più, usale anche nelle frasi delle esperienze." : "Nel CV non c'è una sezione competenze riconoscibile: aggiungi le parole a mano nel blocco giusto qui sotto."));
+  }
+  const cb = el("div","edbox");
+  let autoRun = null;
+  if (d.claude){
+    cb.appendChild(el("span",null,"L'AI riscrive da sola i blocchi che si possono migliorare" + (j ? " per questo annuncio" : "") + ", senza inventare nulla. Li trovi evidenziati qui sotto: puoi ritoccarli, poi premi «Applica». All'AI online va il testo del CV senza email, telefono e link."));
+    const rb = el("button","btn2 solid","Riscrivi di nuovo con l'AI"); rb.type = "button";
+    rb.addEventListener("click", () => doRewrite(rb, "", "Riscrivi di nuovo con l'AI", "L'AI sta riscrivendo il CV..."));
+    cb.append(rb); autoRun = rb;
+  }
+  const notes = el("ul"); notes.style.margin = "0";
+  async function doRewrite(b, engine, idle, busy){
+    b.disabled = true; b.textContent = busy;
+    let r; try { r = await hubPost("/api/hub/rewrite", {id:cvId, url:j ? j.url : "", engine}); } catch (e) { r = {ok:false, error:"Job Radar non risponde."}; }
+    b.disabled = false; b.textContent = idle;
+    if (!r.ok){ toast(r.error || "Riscrittura non riuscita."); return; }
+    const n = Object.keys(r.segments).length;
+    Object.entries(r.segments).forEach(([id, t]) => { const ta = areas.get(+id); if (ta){ ta.value = t; touch(+id); } });
+    notes.replaceChildren(); (r.notes || []).forEach(x => notes.appendChild(el("li","notr",x)));
+    toast(n ? (n === 1 ? "1 blocco riscritto: controllalo qui sotto." : n + " blocchi riscritti: controllali qui sotto.") : "Nessuna modifica proposta.");
+  }
+  cb.appendChild(el("span",null,"AI gratuita sul tuo computer (modello open source Qwen3): propone le frasi già riscritte" + (j ? " per questo annuncio" : "") + " senza inviare nulla fuori dal PC. Ci mette alcuni minuti; controlli tutto qui sotto prima di applicare."));
+  const aiHost = el("div","facts2"); cb.appendChild(aiHost);
+  aiControl(aiHost, "Riscrivi con l'AI sul tuo computer", b => doRewrite(b, "local", "Riscrivi con l'AI sul tuo computer", "L'AI sta riscrivendo (alcuni minuti)..."));
+  cb.appendChild(notes);
+  sh.appendChild(cb);
+  const head = el("div","trhead"); head.append(el("div",null,"Testo di adesso"), el("div",null,"Testo nuovo, modificabile")); sh.appendChild(head);
+  d.segments.forEach(g => {
+    const r = el("div","trrow"), ta = el("textarea"); ta.value = g.text; ta.rows = Math.max(1, Math.ceil(g.text.length / 60)); ta.setAttribute("aria-label","Nuovo testo del blocco");
+    ta.addEventListener("input", () => touch(g.id));
+    r.append(el("div","src",(g.bullet ? "• " : "") + g.text), ta); sh.appendChild(r); areas.set(g.id, ta); rows.set(g.id, r); orig.set(g.id, g.text.trim());
+  });
+  foot = el("div","trfoot"); go = el("button","btn2 solid",`Applica le modifiche e crea il nuovo ${fmt}`); go.type = "button"; cnt = el("span","sub"); cnt.style.margin = "0";
+  const msg = el("span","cvmsg"); msg.style.margin = "0";
+  go.addEventListener("click", async () => {
+    go.disabled = true; go.textContent = "Creo il file...";
+    const segs = {}; areas.forEach((ta, id) => { if (ta.value.trim() !== orig.get(id)) segs[id] = ta.value; });
+    let r; try { r = await hubPost("/api/hub/apply", {id:cvId, url:j ? j.url : "", segments:segs}); } catch (e) { r = {ok:false, error:"Job Radar non risponde."}; }
+    if (!r.ok){ go.disabled = false; go.textContent = `Applica le modifiche e crea il nuovo ${fmt}`; msg.textContent = r.error || "Non riuscito."; return; }
+    foot.replaceChildren();
+    const dl = el("div","delta"); dl.append(String(r.before), " → ", el("em", null, String(r.after))); dl.title = j ? "Match con l'annuncio: prima e dopo" : "Leggibilità: prima e dopo";
+    const note = ["Creato ", el("span","notr",`«${r.entry.name}»`), ". ", j ? "Match con l'annuncio, prima e dopo." : "Leggibilità, prima e dopo."];
+    if (r.shrunk) note.push(` ${r.shrunk} blocchi rimpiccioliti per farli stare nello spazio.`);
+    if (r.failed) note.push(` ${r.failed} blocchi non sono entrati: accorcia quelle frasi e riprova.`);
+    const info = el("span","sub"); info.append(...note); info.style.cssText = "margin:0;flex:1 1 260px";
+    const down = el("a","btn2 solid",`Scarica il nuovo ${fmt}`); down.href = "/api/hub/file?id=" + encodeURIComponent(r.entry.id);
+    const use = el("button","btn2","Usalo per il match"); use.type = "button"; use.addEventListener("click", async () => { use.textContent = "Ricalcolo..."; await hubPost("/api/hub/activate", {id:r.entry.id}); location.reload(); });
+    const done = el("button","btn2 quiet","Chiudi"); done.type = "button"; done.addEventListener("click", () => location.reload());
+    foot.append(dl, info, down, use, done);
+  });
+  foot.append(go, cnt, msg); sh.appendChild(foot); count(); x.focus();
+  if (autoRun) autoRun.click();  // la proposta dell'AI parte da sola all'apertura
+}
+/* hub dei CV: versioni caricate e tradotte, quale è in uso, traduzione con revisione */
+const HUB = DATA.hub || {active:null, items:[]};
+const LANGS = {it:"italiano", en:"inglese"};
+async function hubPost(path, body){
+  const r = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  return r.json();
+}
+function renderHub(){
+  const host = $("hublist"); host.replaceChildren(); host.hidden = !HUB.items.length;
+  HUB.items.forEach(it => {
+    const on = it.id === HUB.active, row = el("div","hubrow" + (on ? " on" : "")), info = el("div"), acts = el("div","acts");
+    const nm = el("div","nm"); nm.appendChild(el("span","notr",it.name)); if (on) nm.appendChild(el("span","inuse","in uso per il match"));
+    info.append(nm, el("div","mt",`${it.kind === "tradotto" ? "Tradotto" : it.kind === "adattato" ? "Modificato" : "Originale"} · ${LANGS[it.lang] || it.lang} · ${it.words} parole · ${it.created}`));
+    row.appendChild(info);
+    if (IS_SERVER){
+      const b = (label, cls, fn) => { const x = el("button","btn2" + (cls ? " " + cls : ""), label); x.type = "button"; x.addEventListener("click", fn); acts.appendChild(x); return x; };
+      if (!on) b("Usa per il match", "", async e => { e.currentTarget.textContent = "Ricalcolo..."; const d = await hubPost("/api/hub/activate", {id:it.id}); if (d.ok) location.reload(); else cvMsg(d.error); });
+      if (it.ext === ".pdf" || it.ext === ".docx") b(`Traduci in ${it.lang === "it" ? "inglese" : "italiano"}`, "solid", e => openTranslate(it, e.currentTarget));
+      const dl = el("a","btn2 quiet","Scarica"); dl.href = "/api/hub/file?id=" + encodeURIComponent(it.id); acts.appendChild(dl);
+      b("Elimina", "quiet", async () => { if (!confirm(`Eliminare «${it.name}»?`)) return; const d = await hubPost("/api/hub/delete", {id:it.id}); if (d.ok) location.reload(); else cvMsg(d.error); });
+    }
+    row.appendChild(acts); host.appendChild(row);
+  });
+}
+async function openTranslate(it, btn, engine){
+  const label = btn.textContent; btn.disabled = true; btn.textContent = engine === "local" ? "L'AI sta traducendo (alcuni minuti)..." : "Traduco sul tuo computer...";
+  let d; try { d = await hubPost("/api/hub/translate", {id:it.id, engine:engine || ""}); } catch (e) { d = {ok:false, error:"Job Radar non risponde."}; }
+  btn.disabled = false; btn.textContent = label;
+  if (!d.ok){ cvMsg(d.error || "Traduzione non riuscita."); return; }
+  const m = $("modal"), s = $("sheet"); s.replaceChildren(); s.classList.add("wide"); m.hidden = false; document.body.style.overflow = "hidden";
+  const x = el("button","x","×"); x.type = "button"; x.setAttribute("aria-label","Chiudi"); x.addEventListener("click", closeModal);
+  s.append(x, el("h3","display",`Traduzione in ${d.to}`), el("p","sub",`«${it.name}». La traduzione è fatta sul tuo computer da un modello automatico: rileggila e correggi a destra prima di generare il file. Nomi, email e numeri restano uguali.`));
+  const head = el("div","trhead"); head.append(el("div",null,`Originale (${d.from})`), el("div",null,`Traduzione (${d.to}), modificabile`)); s.appendChild(head);
+  const areas = [];
+  d.segments.forEach(g => {
+    const r = el("div","trrow"), ta = el("textarea"); ta.value = g.translated; ta.rows = Math.max(1, Math.ceil(g.translated.length / 60)); ta.dataset.id = g.id; ta.setAttribute("aria-label","Traduzione di: " + g.text.slice(0, 40));
+    r.append(el("div","src",g.text), ta); s.appendChild(r); areas.push(ta);
+  });
+  const foot = el("div","trfoot"), go = el("button","btn2 solid",`Genera il CV in ${d.to}`), msg = el("span","sub"); go.type = "button"; msg.style.margin = "0";
+  go.addEventListener("click", async () => {
+    go.disabled = true; go.textContent = "Genero il file...";
+    const segs = {}; areas.forEach(a => { segs[a.dataset.id] = a.value; });
+    let r; try { r = await hubPost("/api/hub/build", {id:it.id, segments:segs}); } catch (e) { r = {ok:false, error:"Job Radar non risponde."}; }
+    if (!r.ok){ go.disabled = false; go.textContent = `Genera il CV in ${d.to}`; msg.textContent = r.error || "Non riuscito."; return; }
+    foot.replaceChildren();
+    const note = [`Creato «${r.entry.name}».`];
+    if (r.shrunk) note.push(`${r.shrunk} blocchi rimpiccioliti per farli stare nello spazio.`);
+    if (r.failed) note.push(`${r.failed} blocchi non sono entrati: accorcia quelle frasi e rigenera.`);
+    const dl = el("a","btn2 solid","Scarica il CV tradotto"); dl.href = "/api/hub/file?id=" + encodeURIComponent(r.entry.id);
+    const use = el("button","btn2","Usalo per il match"); use.type = "button"; use.addEventListener("click", async () => { use.textContent = "Ricalcolo..."; await hubPost("/api/hub/activate", {id:r.entry.id}); location.reload(); });
+    const done = el("button","btn2 quiet","Chiudi"); done.type = "button"; done.addEventListener("click", () => location.reload());
+    foot.append(el("span","sub",note.join(" ")), dl, use, done); foot.firstChild.style.cssText = "margin:0;flex-basis:100%";
+  });
+  foot.append(go, msg); s.appendChild(foot); x.focus();
+}
+function closeModal(){ $("modal").hidden = true; $("sheet").classList.remove("wide"); document.body.style.overflow = ""; }
+function openCvModal(j){
+  const m = $("modal"), s = $("sheet"), c = j.cv; s.replaceChildren(); m.hidden = false; document.body.style.overflow = "hidden";
+  const x = el("button","x","×"); x.type = "button"; x.setAttribute("aria-label","Chiudi"); x.addEventListener("click", closeModal);
+  s.append(x, el("h3","display","Il tuo CV per questo annuncio"), el("p","sub",`${j.title_it || j.title} · ${j.company}`));
+  const ms = el("div","mscore"); ms.append(el("div","big",String(c.score)), el("div",null, c.keyword_rate != null ? `su 100 · ${c.keyword_rate}% delle parole chiave dell'annuncio presenti nel CV` : "su 100"));
+  s.appendChild(ms);
+  c.breakdown.forEach(b => {
+    const r = el("div","crit"), tr = el("div","track"), fill = el("b"); fill.style.width = Math.round(100*b.pts/b.max) + "%"; tr.appendChild(fill);
+    r.append(el("div",null,b.k), tr, el("div","pt",`${b.pts}/${b.max}`), el("div","note",b.note)); s.appendChild(r);
+  });
+  const chips = (title, items, warn) => { if (!items || !items.length) return; s.appendChild(el("h4",null,title)); const t = el("div","tags"); items.forEach(i => t.appendChild(el("span","tag" + (warn ? " warn" : " sk"), i))); s.appendChild(t); };
+  chips("Parole chiave dell'annuncio trovate nel CV", c.matched);
+  chips("Parole chiave dell'annuncio che mancano nel CV", c.missing, true);
+  if (c.tips && c.tips.length){ s.appendChild(el("h4",null,"Cosa fare")); const ul = el("ul"); c.tips.forEach(t => ul.appendChild(el("li",null,t))); s.appendChild(ul); }
+  if (HUB.active && IS_SERVER){ const tb = el("button","btn2 solid","Adatta il CV a questo annuncio"); tb.type = "button"; tb.style.marginTop = "14px"; tb.addEventListener("click", e => openEditor(HUB.active, j, e.currentTarget)); s.appendChild(tb); }
+  s.appendChild(el("h4",null,"Come seleziona questa azienda")); s.appendChild(el("p","atsnote",c.ats));
+  const dp = el("div","deep");
+  dp.appendChild(el("h4",null,"Analisi approfondita con Claude")); dp.querySelector("h4").style.marginTop = "0";
+  if (!IS_SERVER){ dp.appendChild(el("p","sub","Disponibile aprendo Job Radar da «Avvia Job Radar.bat».")); }
+  else if (!DATA.deep){ dp.appendChild(el("p","sub","Per attivarla serve una chiave API Anthropic in config.json (sezione \"anthropic\"). Ogni analisi costa pochi centesimi.")); }
+  else {
+    dp.appendChild(el("p","sub","Claude legge il CV e l'annuncio per intero e dà un giudizio da selezionatore. Invia ad Anthropic il testo del CV e dell'annuncio. Costo: pochi centesimi."));
+    const b = el("button","btn2 solid","Chiedi l'analisi a Claude"); b.type = "button"; const out = el("div");
+    b.addEventListener("click", async () => {
+      b.disabled = true; b.textContent = "Claude sta leggendo (fino a un minuto)...";
+      try {
+        const r = await fetch("/api/deep", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({url:j.url})});
+        const d = await r.json(); out.replaceChildren();
+        if (d.ok){ out.append(el("pre",null,d.text), el("small",null,"Analisi generata da Claude (" + (d.model||"") + "). È un parere: verifica sempre sull'annuncio originale.")); b.hidden = true; }
+        else { out.appendChild(el("p","cvmsg",d.error || "Analisi non riuscita.")); b.disabled = false; b.textContent = "Riprova"; }
+      } catch (e) { out.replaceChildren(el("p","cvmsg","Job Radar non risponde.")); b.disabled = false; b.textContent = "Riprova"; }
+    });
+    dp.append(b, out);
+  }
+  s.appendChild(dp);
+  const act = el("div","pa"); const ext = el("a","ext","Apri annuncio"); ext.href = safeUrl(j.url); ext.target = "_blank"; ext.rel = "noopener noreferrer nofollow"; act.appendChild(ext); s.appendChild(act);
+  x.focus();
+}
+
+/* ---------- aggiornamento dalla pagina (solo aperta da "Avvia Job Radar.bat") ---------- */
+const IS_SERVER = /^https?:$/.test(location.protocol) && ["127.0.0.1","localhost"].includes(location.hostname);
+let polling = null;
+const WAIT = "Cerco gli annunci usciti nelle ultime 24 ore in 30 paesi e leggo per primi i più adatti a te. Intanto, qualche numero sul tuo mercato.";
+/* dati per l'attesa: numeri ufficiali Eurostat (verificati sulla pagina indicata) e numeri dell'ultima ricerca di Job Radar */
+const ES = "https://ec.europa.eu/eurostat/statistics-explained/index.php?title=";
+const FACTS = [
+  {k:"Chi lavora nel digitale", big:"10 milioni", tx:"Le persone che nel 2025 lavoravano come specialisti ICT nell'Unione Europea: il 5,0% di tutti gli occupati.", nt:"", src:"ICT_specialists_in_employment"},
+  {k:"Un settore che cresce", big:"+59,4%", tx:"La crescita degli specialisti ICT nell'UE tra il 2015 e il 2025: oltre 6 volte quella dell'occupazione totale (+9,8%).", nt:"Il software B2B è il settore su cui Job Radar filtra gli annunci per te.", src:"ICT_specialists_in_employment"},
+  {k:"Donne nel digitale", big:"19,5%", tx:"La quota di donne tra gli specialisti ICT nell'UE nel 2025. Gli uomini sono l'80,5%.", nt:"", src:"ICT_specialists_in_employment"},
+  {k:"Dove il digitale pesa di più", big:"8,9%", tx:"La Svezia è il paese UE con la quota più alta di specialisti ICT sul totale degli occupati (2025). Seguono Lussemburgo e Finlandia.", nt:"Job Radar cerca anche in Svezia, Lussemburgo e Finlandia.", src:"ICT_specialists_in_employment"},
+  {k:"Profili difficili da trovare", big:"57,5%", tx:"Delle imprese UE che nel 2023 hanno cercato specialisti ICT, più di una su due ha faticato a coprire il posto.", nt:"Solo il 9,55% delle imprese UE ha cercato specialisti ICT in quell'anno.", src:"ICT_specialists_-_statistics_on_hard-to-fill_vacancies_in_enterprises"},
+  {k:"Germania e Spagna a confronto", big:"72% e 30%", tx:"In Germania il 72,4% delle imprese che cercavano specialisti ICT ha avuto difficoltà a trovarli; in Spagna il 30,2%, il valore più basso dell'UE (2023).", nt:"Job Radar cerca in entrambi i paesi.", src:"ICT_specialists_-_statistics_on_hard-to-fill_vacancies_in_enterprises"},
+  {k:"Posti vacanti", big:"2,0%", tx:"La quota di posti di lavoro vacanti nell'UE nel secondo trimestre 2026. In testa i Paesi Bassi con il 4,1%, poi il Belgio.", nt:"", src:"Job_vacancy_statistics"},
+  {k:"Neolaureati al lavoro", big:"87,0%", tx:"Il tasso di occupazione dei neolaureati (istruzione terziaria, 20-34 anni) nell'UE nel 2025.", nt:"Considerando tutti i neodiplomati e neolaureati la media UE è l'83%; in Italia il 71,8%.", src:"Employment_rates_of_recent_graduates"},
+  {k:"Occupazione in Europa", big:"76,1%", tx:"Il tasso di occupazione nell'UE (20-64 anni) nel 2025, su circa 198 milioni di occupati. L'Italia è al 67,6%, il valore più basso.", nt:"", src:"Employment_-_annual_statistics"},
+];
+function ownFacts(){
+  const jobs = viewJobs("win"); if (jobs.length < 20) return [];
+  const out = [], pct = n => Math.round(100*n/jobs.length), when = RUN ? fmtD(RUN.at) : "";
+  const fam = countBy(jobs, j => j.role_family)[0], cs = countBy(jobs, j => j.country).slice(0, 3), sk = countTerms0(jobs).slice(0, 3);
+  const rem = jobs.filter(j => /remot/i.test(j.mode||"")).length, jr = jobs.filter(j => /^(Junior|Stage)/.test(j.level||"")).length;
+  if (fam) out.push({k:"Dalla tua ultima ricerca" + (when ? " (" + when + ")" : ""), big:pct(fam[1]) + "%", tx:`${FAMILIES[fam[0]] || fam[0]} è il tipo di ruolo più frequente: ${fam[1]} annunci su ${jobs.length}.`});
+  if (cs.length === 3) out.push({k:"Dalla tua ultima ricerca", big:cs[0][0], tx:`Il paese con più annunci adatti: ${cs[0][1]}. Poi ${cs[1][0]} (${cs[1][1]}) e ${cs[2][0]} (${cs[2][1]}).`});
+  if (sk.length === 3) out.push({k:"Dalla tua ultima ricerca", big:sk[0][0], tx:`La competenza più richiesta: compare in ${sk[0][1]} annunci. Poi ${sk[1][0]} (${sk[1][1]}) e ${sk[2][0]} (${sk[2][1]}).`, nt:"Se una di queste manca nel CV, vale la pena aggiungerla dove è vera."});
+  if (rem) out.push({k:"Dalla tua ultima ricerca", big:pct(rem) + "%", tx:`Gli annunci che si possono fare da remoto: ${rem} su ${jobs.length}.`});
+  if (jr) out.push({k:"Dalla tua ultima ricerca", big:String(jr), tx:`Gli annunci dichiarati di livello junior su ${jobs.length}.`, nt:"Molti annunci non indicano il livello: guarda gli anni di esperienza richiesti."});
+  return out;
+}
+function countTerms0(list){ const m = new Map(); list.forEach(j => (j.skills||[]).forEach(t => m.set(t, (m.get(t)||0) + 1))); return [...m].sort((a,b) => b[1]-a[1]); }
+let WF = null, wi = 0, wTimer = 0, liveFacts = false;
+function showFact(i){
+  if (!WF){ const own = ownFacts(); WF = []; const n = Math.max(own.length, FACTS.length); for (let k = 0; k < n; k++){ if (FACTS[k]) WF.push(FACTS[k]); if (own[k]) WF.push(own[k]); } }
+  wi = (i + WF.length) % WF.length; const f = WF[wi], host = $("wstat"); host.replaceChildren(el("div","k",f.k), el("div","big",f.big), el("div","tx",f.tx)); if (f.nt) host.appendChild(el("div","nt",f.nt));
+  if (f.live) host.querySelector(".big").classList.add("notr"), host.querySelector(".tx").classList.add("notr"), host.querySelector(".k").classList.add("notr");
+  $("wpos").textContent = `${wi + 1} di ${WF.length}`;
+}
+function factsAuto(on){ clearInterval(wTimer); if (on) wTimer = setInterval(() => showFact(wi + 1), 12000); }
+const mmss = sec => Math.floor(sec/60) + ":" + String(Math.floor(sec%60)).padStart(2, "0");
+function showProgress(title, sub, log, cls, st){
+  const p = $("progress"), first = p.hidden; p.hidden = false; p.classList.toggle("err", cls === "err");
+  $("ptitle").textContent = title; $("psub").textContent = sub; $("spin").style.display = cls ? "none" : "";
+  log = log || []; $("plog").textContent = cls ? log.slice(-5).join("\n") : (log[log.length - 1] || "").trim();
+  const run = !cls && st && st.started_at;
+  ["wsteps","wstat","wnavrow","wgame"].forEach(id => { $(id).hidden = !!cls; }); $("wfill").parentNode.parentNode.hidden = !run;
+  if (cls){ factsAuto(false); p.classList.remove("mini"); return; }
+  if (first){ showFact(wi); factsAuto(true); }
+  if (!run) return;
+  const el0 = Math.max(0, (Date.now() - Date.parse(st.started_at)) / 1000), tot = (st.expect_min || 14) * 60;
+  $("wfill").style.width = Math.min(97, 100*el0/tot).toFixed(1) + "%";
+  $("welapsed").textContent = "Trascorsi " + mmss(el0); $("wleft").textContent = el0 < tot ? "ancora circa " + Math.max(1, Math.ceil((tot - el0)/60)) + " min" : "quasi finito";
+  const txt = log.join("\n"), has = r => r.test(txt);
+  const judging = has(/Giudizio AI su/) && !has(/Giudizio AI: \d+ annunci valutati/);
+  const step = has(/Filtri e punteggio/) ? 3 : has(/annunci nuovi da leggere/) ? 2 : has(/In attesa di LinkedIn/) ? 1 : 0;
+  const who = judging ? "vaglio" : "ada", wm = $("wmasc");
+  if (wm.dataset.who !== who){ wm.dataset.who = who; wm.replaceChildren(mascot(who)); }
+  $("ptitle").textContent = judging ? "Tina sta leggendo gli annunci uno per uno..." : title;
+  [...$("wsteps").children].forEach((li, i) => { li.className = i < step ? "done" : i === step ? "now" : ""; });
+  if (st.facts && st.facts.length && !liveFacts){
+    liveFacts = true; const own = ownFacts(), live = st.facts.map(f => ({k:f.k[LANG], big:f.big[LANG], tx:f.tx[LANG], url:f.url, live:true}));
+    WF = []; for (let k = 0; k < Math.max(live.length, own.length); k++){ if (live[k]) WF.push(live[k]); if (own[k]) WF.push(own[k]); }
+    showFact(0); factsAuto(true);
+  }
+}
+/* due giochini per l'attesa: ne esce uno a caso per ogni ricerca */
+function startGame(cv){
+  const W = 900, H = 340, G = H - 54, en = LANG === "en";
+  cv.width = W * 2; cv.height = H * 2; const ctx = cv.getContext("2d"); ctx.scale(2, 2);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const C = {fg:css("--text"), mut:css("--muted"), ok:css("--radar"), bad:"#FF7A59", gold:"#FFC93C", line:css("--line"), bg:css("--surface2"), bg2:css("--surface"), ink:"#06140E"};
+  const kind = Math.random() < .5 ? "run" : "catch";
+  let best = 0; try { best = +localStorage.getItem("jr-best-" + kind) || 0; } catch (e) {}
+  const OBST = en ? ["Useless call","87 emails","Endless meeting","We'll let you know","Monday","Deadline","Ghosting"] : ["Call inutile","87 email","Riunione infinita","Le faremo sapere","Lunedì","Scadenza","Ghosting"];
+  const GOOD = en ? ["Offer","Interview","Remote work","Good salary","Great team","Promotion"] : ["Offerta","Colloquio","Smart working","Buona RAL","Bel team","Promozione"];
+  const BAD = en ? ["Unpaid internship","10 yrs for junior","Ghosting","Fake remote","Free trial day"] : ["Stage gratis","10 anni per junior","Ghosting","Finto remoto","Prova gratuita"];
+  const TX = en ? {start:"Click or press space to start", over:"Game over", again:"Click or space to play again", score:"Score", best:"Best", lives:"Lives", bonus:"Interview!", title: kind === "run" ? "Race to the interview" : "Catch the offer"}
+               : {start:"Clic o barra spaziatrice per iniziare", over:"Fine partita", again:"Clic o spazio per rigiocare", score:"Punti", best:"Record", lives:"Vite", bonus:"Colloquio!", title: kind === "run" ? "Corsa al colloquio" : "Acchiappa l'offerta"};
+  $("whint").textContent = kind === "run" ? "Corsa al colloquio: salta gli ostacoli con la barra spaziatrice, la freccia su o un clic. Le stelle valgono 10 punti." : "Acchiappa l'offerta: muovi la valigetta con le frecce o il mouse. Prendi le carte verdi, schiva quelle rosse.";
+  const F = (px, w) => `${w || 700} ${px}px "Hanken Grotesk", system-ui, sans-serif`, FD = px => `800 ${px}px "Bricolage Grotesque", system-ui, sans-serif`;
+  const pick = a => a[Math.floor(Math.random() * a.length)], keys = {}, rnd = (a, b) => a + Math.random() * (b - a);
+  const stars = Array.from({length:26}, () => ({x:rnd(0, W), y:rnd(10, G - 110), r:rnd(.6, 1.7), s:rnd(4, 14)}));
+  const towers = Array.from({length:14}, (_, i) => ({x:i * 70 + rnd(-10, 10), w:rnd(34, 58), h:rnd(40, 120)}));
+  let st, last = 0, mouseX = null, parts = [], pops = [], shake = 0, tt = 0;
+  const reset = () => { st = kind === "run" ? {y:0, vy:0, obs:[], bon:[], next:1, sp:300, score:0, over:false, on:false, jumps:0} : {x:W/2, items:[], next:.5, score:0, lives:3, combo:0, over:false, on:false}; parts = []; pops = []; };
+  reset();
+  const burst = (x, y, col, n) => { for (let i = 0; i < n; i++) parts.push({x, y, vx:rnd(-160, 160), vy:rnd(-240, -40), life:rnd(.4, .9), col}); };
+  const pop = (x, y, t, col) => pops.push({x, y, t, col, life:1});
+  const act = () => { if (st.over){ reset(); st.on = true; return; } st.on = true; if (kind === "run" && st.jumps < 2){ st.vy = st.jumps ? -560 : -700; st.jumps++; burst(120, G + st.y, C.mut, 5); } };
+  cv.addEventListener("keydown", e => { if ([" ","ArrowUp","ArrowLeft","ArrowRight","Enter"].includes(e.key)) e.preventDefault(); if (!keys[e.key] && (e.key === " " || e.key === "ArrowUp" || e.key === "Enter")) act(); keys[e.key] = true; });
+  cv.addEventListener("keyup", e => { keys[e.key] = false; });
+  const mx = e => { const r = cv.getBoundingClientRect(); return (e.clientX - r.left) * W / r.width; };
+  cv.addEventListener("pointerdown", e => { cv.focus(); mouseX = mx(e); act(); });
+  cv.addEventListener("pointermove", e => { mouseX = mx(e); });
+  const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+  const end = () => { st.over = true; shake = .35; if (st.score > best){ best = Math.floor(st.score); try { localStorage.setItem("jr-best-" + kind, String(best)); } catch (e) {} } };
+  /* cartello con testo grande e leggibile: fondo pieno, bordo, icona */
+  function card(x, y, w, h, t, good){
+    ctx.save(); ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
+    ctx.fillStyle = good ? C.ok : C.bad; rr(x, y, w, h, 12); ctx.fill(); ctx.restore();
+    ctx.fillStyle = "rgba(255,255,255,.22)"; rr(x + 3, y + 3, w - 6, h / 2 - 3, 9); ctx.fill();
+    ctx.fillStyle = C.ink; ctx.font = F(17, 800); ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.beginPath(); ctx.arc(x + 19, y + h/2, 9, 0, 7); ctx.fill();
+    ctx.strokeStyle = good ? C.ok : C.bad; ctx.lineWidth = 2.6; ctx.lineCap = "round"; ctx.beginPath();
+    if (good){ ctx.moveTo(x + 14.5, y + h/2); ctx.lineTo(x + 18, y + h/2 + 3.5); ctx.lineTo(x + 24, y + h/2 - 4); } else { ctx.moveTo(x + 15, y + h/2 - 4); ctx.lineTo(x + 23, y + h/2 + 4); ctx.moveTo(x + 23, y + h/2 - 4); ctx.lineTo(x + 15, y + h/2 + 4); }
+    ctx.stroke(); ctx.fillStyle = C.ink; ctx.fillText(t, x + 35, y + h/2 + 1);
+  }
+  const cardW = t => { ctx.font = F(17, 800); return ctx.measureText(t).width + 50; };
+  function person(x, y, run){
+    const sw = run ? Math.sin(tt * 16) : 0, air = y < G - 2;
+    ctx.strokeStyle = C.fg; ctx.lineWidth = 5; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(x, y - 22); ctx.lineTo(x + (air ? 12 : sw * 11), y - (air ? 8 : 2)); ctx.moveTo(x, y - 22); ctx.lineTo(x - (air ? 10 : sw * 11), y - (air ? 6 : 2)); ctx.stroke();
+    ctx.fillStyle = C.ok; rr(x - 11, y - 52, 22, 32, 8); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x + 4, y - 44); ctx.lineTo(x + 16 + sw * 4, y - 32); ctx.stroke();
+    ctx.fillStyle = C.gold; rr(x + 12 + sw * 4, y - 34, 17, 13, 3); ctx.fill(); ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.strokeRect(x + 17 + sw * 4, y - 38, 7, 4);
+    ctx.fillStyle = C.fg; ctx.beginPath(); ctx.arc(x, y - 63, 10, 0, 7); ctx.fill();
+  }
+  function scene(speed, dt){
+    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, C.bg2); g.addColorStop(1, C.bg); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = C.mut; stars.forEach(s => { s.x -= s.s * dt * (speed ? 1 : .3); if (s.x < 0) s.x = W; ctx.globalAlpha = .35 + .3 * Math.sin(tt * 2 + s.y); ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill(); }); ctx.globalAlpha = 1;
+    ctx.fillStyle = C.line; towers.forEach(b => { b.x -= speed * .18 * dt; if (b.x + b.w < 0) b.x += 14 * 70; ctx.fillRect(b.x, G - b.h, b.w, b.h); });
+    ctx.fillStyle = C.bg2; towers.forEach(b => { for (let wy = G - b.h + 10; wy < G - 8; wy += 16) for (let wx = b.x + 7; wx < b.x + b.w - 8; wx += 13) ctx.fillRect(wx, wy, 5, 7); });
+    ctx.fillStyle = C.line; ctx.fillRect(0, G, W, H - G); ctx.fillStyle = C.ok; ctx.globalAlpha = .55; ctx.fillRect(0, G, W, 3); ctx.globalAlpha = 1;
+    ctx.fillStyle = C.mut; const off = (tt * speed) % 60; for (let x = -off; x < W; x += 60) ctx.fillRect(x, G + 24, 26, 4);
+  }
+  function hud(){
+    ctx.textBaseline = "middle"; ctx.textAlign = "left"; ctx.font = F(15, 700); ctx.fillStyle = C.mut; ctx.fillText(TX.title, 18, 24);
+    ctx.textAlign = "right"; ctx.fillStyle = C.fg; ctx.font = FD(30); ctx.fillText(String(Math.floor(st.score)), W - 18, 30);
+    ctx.font = F(14, 600); ctx.fillStyle = C.mut; ctx.fillText(`${TX.best} ${best}`, W - 18, 56);
+    if (kind === "catch"){ for (let i = 0; i < 3; i++){ ctx.fillStyle = i < st.lives ? C.bad : C.line; const hx = W - 130 - i * 26, hy = 28; ctx.beginPath(); ctx.arc(hx - 5, hy - 3, 6, 0, 7); ctx.arc(hx + 5, hy - 3, 6, 0, 7); ctx.fill(); ctx.beginPath(); ctx.moveTo(hx - 11, hy); ctx.lineTo(hx, hy + 12); ctx.lineTo(hx + 11, hy); ctx.fill(); }
+      if (st.combo > 1){ ctx.textAlign = "left"; ctx.fillStyle = C.gold; ctx.font = FD(20); ctx.fillText("x" + Math.min(5, st.combo), 18, 52); } }
+  }
+  function frame(t){
+    if ($("progress").hidden || cv.hidden) return;
+    const dt = Math.min(.04, (t - last) / 1000 || 0); last = t; tt += dt;
+    const live = st.on && !st.over;
+    ctx.save(); if (shake > 0){ shake -= dt; ctx.translate(rnd(-5, 5), rnd(-4, 4)); }
+    scene(kind === "run" ? (live ? st.sp : 40) : 30, dt);
+    if (kind === "run"){
+      if (live){
+        st.sp += dt * 9; st.score += dt * st.sp / 30; st.vy += 2100 * dt; st.y = Math.min(0, st.y + st.vy * dt); if (st.y === 0){ st.vy = 0; st.jumps = 0; }
+        st.next -= dt; if (st.next <= 0){ const tx = pick(OBST), w = cardW(tx); st.obs.push({x:W + 20, w, h:rnd(40, 58), t:tx}); if (Math.random() < .45) st.bon.push({x:W + 20 + w/2, y:G - rnd(120, 160)}); st.next = rnd(1.05, 1.9) * 300 / st.sp + w / st.sp; }
+        st.obs.forEach(o => { o.x -= st.sp * dt; }); st.obs = st.obs.filter(o => o.x + o.w > -20);
+        st.bon.forEach(b => { b.x -= st.sp * dt; }); st.bon = st.bon.filter(b => { if (Math.abs(b.x - 120) < 26 && Math.abs(b.y - (G + st.y - 34)) < 38){ st.score += 10; burst(b.x, b.y, C.gold, 14); pop(b.x, b.y - 10, "+10 " + TX.bonus, C.gold); return false; } return b.x > -20; });
+        if (st.obs.some(o => o.x < 120 + 12 && o.x + o.w > 120 - 10 && G + st.y > G - o.h + 6)){ burst(120, G + st.y - 30, C.bad, 22); end(); }
+      }
+      st.obs.forEach(o => { ctx.fillStyle = C.mut; ctx.fillRect(o.x + o.w/2 - 3, G - 8, 6, 8); card(o.x, G - o.h - 6, o.w, o.h, o.t, false); });
+      st.bon.forEach(b => { ctx.save(); ctx.translate(b.x, b.y + Math.sin(tt * 5 + b.x) * 4); ctx.rotate(tt * 2); ctx.fillStyle = C.gold; ctx.shadowColor = C.gold; ctx.shadowBlur = 14; ctx.beginPath(); for (let i = 0; i < 10; i++){ const a = i * Math.PI / 5, r = i % 2 ? 6 : 14; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); } ctx.closePath(); ctx.fill(); ctx.restore(); });
+      ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(120, G + 4, 18 + st.y / 18, 5, 0, 0, 7); ctx.fill();
+      person(120, G + st.y, live);
+    } else {
+      if (live){
+        if (keys.ArrowLeft){ st.x -= 560 * dt; mouseX = null; } if (keys.ArrowRight){ st.x += 560 * dt; mouseX = null; }
+        if (mouseX != null) st.x += (mouseX - st.x) * Math.min(1, dt * 14);
+        st.x = Math.max(60, Math.min(W - 60, st.x));
+        st.next -= dt; if (st.next <= 0){ const good = Math.random() < .62, tx = pick(good ? GOOD : BAD), w = cardW(tx); st.items.push({x:rnd(12, W - w - 12), y:-44, w, t:tx, good, rot:rnd(-.08, .08)}); st.next = Math.max(.38, .95 - st.score * .008); }
+        st.items.forEach(o => { o.y += (120 + Math.min(220, st.score * 2.2)) * dt; });
+        st.items = st.items.filter(o => {
+          if (o.y + 38 >= G - 30 && o.y < G - 6 && o.x + o.w > st.x - 56 && o.x < st.x + 56){
+            if (o.good){ st.combo++; const pts = Math.min(5, st.combo); st.score += pts; burst(o.x + o.w/2, G - 30, C.ok, 12); pop(o.x + o.w/2, G - 50, "+" + pts, C.ok); }
+            else { st.combo = 0; st.lives--; shake = .25; burst(o.x + o.w/2, G - 30, C.bad, 16); pop(o.x + o.w/2, G - 50, "-1", C.bad); if (st.lives <= 0) end(); }
+            return false;
+          }
+          if (o.y > G - 6){ if (o.good) st.combo = 0; burst(o.x + o.w/2, G, C.mut, 4); return false; }
+          return true;
+        });
+      }
+      st.items.forEach(o => { ctx.save(); ctx.translate(o.x + o.w/2, o.y + 19); ctx.rotate(o.rot + Math.sin(tt * 3 + o.x) * .03); card(-o.w/2, -19, o.w, 38, o.t, o.good); ctx.restore(); });
+      const bx = st.x; ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(bx, G + 5, 58, 6, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = C.fg; ctx.lineWidth = 5; rr(bx - 18, G - 46, 36, 16, 6); ctx.stroke();
+      ctx.fillStyle = C.gold; rr(bx - 56, G - 34, 112, 36, 9); ctx.fill(); ctx.fillStyle = "rgba(0,0,0,.18)"; ctx.fillRect(bx - 56, G - 18, 112, 5); ctx.fillStyle = C.ink; rr(bx - 9, G - 23, 18, 13, 3); ctx.fill();
+    }
+    parts = parts.filter(p => { p.life -= dt; p.vy += 700 * dt; p.x += p.vx * dt; p.y += p.vy * dt; ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.col; ctx.fillRect(p.x, p.y, 5, 5); return p.life > 0; }); ctx.globalAlpha = 1;
+    pops = pops.filter(p => { p.life -= dt * 1.2; p.y -= 46 * dt; ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.col; ctx.font = FD(22); ctx.textAlign = "center"; ctx.fillText(p.t, p.x, p.y); return p.life > 0; }); ctx.globalAlpha = 1;
+    hud(); ctx.restore();
+    if (!live){
+      ctx.fillStyle = "rgba(6,12,16,.55)"; ctx.fillRect(0, 0, W, H); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "#FFFFFF"; ctx.font = FD(38); ctx.fillText(st.over ? TX.over : TX.title, W/2, H/2 - 34);
+      if (st.over){ ctx.font = FD(26); ctx.fillStyle = C.gold; ctx.fillText(`${TX.score} ${Math.floor(st.score)}  ·  ${TX.best} ${best}`, W/2, H/2 + 8); }
+      const tw = (() => { ctx.font = F(18, 700); return ctx.measureText(st.over ? TX.again : TX.start).width + 44; })(), by = H/2 + (st.over ? 34 : 4), pulse = 1 + Math.sin(tt * 4) * .02;
+      ctx.save(); ctx.translate(W/2, by + 22); ctx.scale(pulse, pulse); ctx.fillStyle = C.ok; rr(-tw/2, -22, tw, 44, 22); ctx.fill(); ctx.fillStyle = C.ink; ctx.font = F(18, 800); ctx.fillText(st.over ? TX.again : TX.start, 0, 1); ctx.restore();
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+async function poll(){
+  try {
+    const s = await (await fetch("/api/status", {cache:"no-store"})).json();
+    if (s.running){ showProgress("Sto cercando gli annunci...", WAIT, s.log, "", s); return; }
+    clearInterval(polling); polling = null;
+    if (s.error){ showProgress("Ricerca non riuscita", s.error + ". Controlla la connessione e riprova.", s.log, "err"); return; }
+    location.reload();
+  } catch (e) { clearInterval(polling); polling = null; showProgress("Job Radar non risponde", "La finestra nera di Job Radar è stata chiusa? Rilancia «Avvia Job Radar.bat».", [], "err"); }
+}
+async function startRefresh(){
+  showProgress("Avvio la ricerca...", WAIT, []);
+  try { await fetch("/api/refresh", {method:"POST"}); } catch (e) { return poll(); }
+  if (!polling) polling = setInterval(poll, 1500); poll();
+}
+async function initRefresh(){
+  if (!IS_SERVER){ $("foothint").textContent = "Per aggiornare con un clic apri Job Radar da «Avvia Job Radar.bat». "; return; }
+  $("refresh").hidden = false; $("refresh").addEventListener("click", startRefresh);
+  $("wprev").addEventListener("click", () => { showFact(wi - 1); factsAuto(true); }); $("wnext").addEventListener("click", () => { showFact(wi + 1); factsAuto(true); });
+  $("wplay").addEventListener("click", e => { e.currentTarget.hidden = true; const cv = $("wcanvas"); cv.hidden = false; startGame(cv); cv.focus(); });
+  $("wmin").addEventListener("click", e => { const m = $("progress").classList.toggle("mini"); e.currentTarget.textContent = m ? "Apri" : "Riduci"; });
+  if (!PROFILE){ history.replaceState(null, "", location.pathname); return openInterview(); }
+  if (location.search.includes("auto=1")){ history.replaceState(null, "", location.pathname); return startRefresh(); }
+  try { const s = await (await fetch("/api/status", {cache:"no-store"})).json(); if (s.running){ polling = setInterval(poll, 1500); poll(); } } catch (e) {}
+}
+
+function showTool(cv){ $("cvsec").hidden = !cv; $("work").style.display = cv ? "none" : "flex"; viewCounts(); if (cv) scrollTo(0, 0); }
+function setView(v){
+  $("cvsec").hidden = true; $("work").style.display = "flex";
+  state.view = v; VIEW = null; Object.assign(state,{role:"",country:"",city:"",mode:"",status:"",fresh:false}); $("f-fresh").setAttribute("aria-pressed","false");
+  const d = day(); buildCityNames(d.jobs); viewCounts(); renderHead(d); update("all");
+}
+function initPrefs(){
+  const root = document.documentElement, isLight = () => (root.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme:light)").matches ? "light" : "dark")) === "light";
+  const tb = $("b-theme"), paint = () => { tb.textContent = isLight() ? "Tema scuro" : "Tema chiaro"; };
+  tb.addEventListener("click", () => { const t = isLight() ? "dark" : "light"; root.setAttribute("data-theme", t); try { localStorage.setItem("jr-theme", t); } catch (e) {} paint(); });
+  paint();
+  const lb = $("b-lang"); lb.textContent = LANG === "en" ? "Italiano" : "English";
+  lb.addEventListener("click", () => { try { localStorage.setItem("jr-lang", LANG === "en" ? "it" : "en"); } catch (e) {} location.reload(); });
+}
+function init(){
+  initPrefs(); startI18n();
+  if (IS_SERVER) aiStatus().then(() => { if (AI) renderCvSteps(); });
+  initMap(); initRefresh(); renderCV();
+  const sel = $("f-date"); sel.appendChild(el("option", null, "Scegli un giorno")).value = "";
+  if (CV) $("tool-cv").append(el("small", null, String((CV.readiness||{}).score ?? "")));
+  DATA.days.forEach(d => { const o = el("option", null, `Trovati il ${fmtD(d.date)} (${d.jobs.length})`); o.value = d.date; sel.appendChild(o); });
+  document.querySelectorAll(".vtab[data-view]").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
+  $("tool-cv").addEventListener("click", () => showTool($("cvsec").hidden));
+  $("tool-profile").addEventListener("click", () => { if (IS_SERVER) openInterview(); else toast("Per cambiare la ricerca apri Job Radar da «Avvia Job Radar.bat»."); });
+  if (PROFILE && PROFILE.summary){ $("lead2").textContent = PROFILE.summary; $("lead2").hidden = false; }
+  sel.addEventListener("change", () => setView(sel.value || "win"));
+  $("export").addEventListener("click", exportCsv);
+  $("modal").addEventListener("click", e => { if (e.target === $("modal") && PROFILE) closeModal(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
+  if (!DATA.days.length && !Object.keys(TR.fav).length){
+    viewCounts();
+    $("headline").replaceChildren("Nessuna ricerca ancora eseguita"); $("detail").hidden = true;
+    const e = el("div","empty"); e.append(el("b",null,"Benvenuta su Job Radar"), "Fai doppio clic su «Avvia Job Radar.bat» per cercare gli annunci delle ultime 24 ore."); $("list").appendChild(e);
+    $("f-date").disabled = true; $("f-score").disabled = true; return;
+  }
+  readHash();
+  const first = day(); buildCityNames(first.jobs); viewCounts(); renderHead(first); update("all");
+  $("f-score").addEventListener("input", e => { state.min = +e.target.value; update("score"); });
+  $("clear").addEventListener("click", () => { Object.assign(state,{role:"",country:"",city:"",mode:"",min:0,iten:false,fresh:false,status:"",skill:"",need:"",reqs:""}); $("f-score").value = 0; $("f-iten").setAttribute("aria-pressed","false"); $("f-fresh").setAttribute("aria-pressed","false"); update("all"); });
+  $("f-iten").addEventListener("click", e => { state.iten = !state.iten; e.currentTarget.setAttribute("aria-pressed", String(state.iten)); update("lang"); });
+  $("f-fresh").addEventListener("click", e => { state.fresh = !state.fresh; e.currentTarget.setAttribute("aria-pressed", String(state.fresh)); update("fresh"); });
+  $("f-sort").addEventListener("change", e => { state.sort = e.target.value; renderList(); });
+  if (!CV) $("f-sort").querySelectorAll('option[value="cv"],option[value="kw"]').forEach(o => { o.disabled = true; });
+}
+init();
+</script>
+</body>
+</html>

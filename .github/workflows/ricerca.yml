@@ -1,0 +1,111 @@
+name: Ricerca
+# Gira nel repo pubblico del codice (minuti gratuiti senza limite). I dati delle persone stanno in un repo privato
+# (DATA_REPO, ramo "dati"), letto e scritto con il segreto JR_GH_TOKEN: nel repo pubblico non entra nessun dato personale
+# e i registri delle esecuzioni (pubblici) riportano solo numeri.
+# Ogni mattina cerca gli annunci per tutte le persone che hanno un profilo. Si può lanciare anche per una persona sola
+# (lo fa l'app quando si preme "Aggiorna" o si finisce l'intervista).
+on:
+  schedule:
+    - cron: "40 4 * * *"   # 06:40 in Italia d'estate, 05:40 d'inverno
+  workflow_dispatch:
+    inputs:
+      utente:
+        description: "Id utente (vuoto = tutti)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+env:
+  DATA_REPO: loft32pes-jpg/job-radar
+
+concurrency:
+  group: ricerca-${{ github.event.inputs.utente || 'tutti' }}
+  cancel-in-progress: false
+
+jobs:
+  elenco:
+    if: github.repository == 'loft32pes-jpg/job-radar-app'
+    runs-on: ubuntu-latest
+    outputs:
+      utenti: ${{ steps.e.outputs.utenti }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.DATA_REPO }}
+          token: ${{ secrets.JR_GH_TOKEN }}
+          ref: dati
+          path: dati
+      - name: Sceglie i modelli AI migliori di oggi
+        continue-on-error: true
+        env:
+          JR_CONFIG: ${{ secrets.JR_CONFIG }}
+        run: |
+          python3 engine/modelli.py dati/modelli.json > /dev/null
+          cd dati
+          git config user.name "job-radar-bot"
+          git config user.email "job-radar-bot@users.noreply.github.com"
+          git add modelli.json && git commit -q -m "Modelli AI di oggi" || true
+          for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break || sleep 4; done
+      - id: e
+        env:
+          SOLO: ${{ github.event.inputs.utente }}
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import datetime, json, os, pathlib
+          solo = os.environ.get("SOLO", "").strip()
+          ids = [p.parent.name for p in pathlib.Path("dati/utenti").glob("*/profilo.json")]
+          if solo:
+              ids = [i for i in ids if i == solo]
+          else:  # chi non apre l'app da più di 10 giorni non viene cercato (si riprende appena torna)
+              index = json.loads(pathlib.Path("dati/utenti/index.json").read_text(encoding="utf-8"))
+              limit = (datetime.date.today() - datetime.timedelta(days=10)).isoformat()
+              ids = [i for i in ids if (index.get(i) or {}).get("visto", "9999") >= limit]
+          print("utenti=" + json.dumps(sorted(ids)))
+          EOF
+
+  ricerca:
+    needs: elenco
+    if: needs.elenco.outputs.utenti != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        utente: ${{ fromJson(needs.elenco.outputs.utenti) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.DATA_REPO }}
+          token: ${{ secrets.JR_GH_TOKEN }}
+          ref: dati
+          path: dati
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Segna la ricerca come in corso
+        working-directory: dati
+        run: |
+          git config user.name "job-radar-bot"
+          git config user.email "job-radar-bot@users.noreply.github.com"
+          echo "{\"running\":true,\"started_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "utenti/${{ matrix.utente }}/stato.json"
+          git add -A && git commit -q -m "Ricerca avviata" || true
+          for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break || sleep 4; done
+      - name: Ricerca
+        env:
+          JR_CONFIG: ${{ secrets.JR_CONFIG }}
+          JR_LI_MINUTES: "30"   # una ricerca profonda al giorno sta nei 2.000 minuti gratuiti al mese
+          JR_LI_SHARE: "0.6"
+        run: python engine/ci_run.py "${{ matrix.utente }}"
+      - name: Salva i risultati
+        if: always()
+        working-directory: dati
+        run: |
+          if grep -q '"running":true' "utenti/${{ matrix.utente }}/stato.json"; then
+            echo "{\"running\":false,\"ok\":false,\"error\":\"La ricerca si è interrotta. Riprova tra qualche minuto.\"}" > "utenti/${{ matrix.utente }}/stato.json"
+          fi
+          git add -A && git commit -q -m "Risultati ricerca" || true
+          for i in 1 2 3 4 5 6; do git pull -q --rebase && git push -q && break || sleep 5; done
