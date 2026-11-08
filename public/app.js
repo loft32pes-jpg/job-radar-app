@@ -570,7 +570,7 @@ function viewMe(){
       onclick: async e => { e.target.disabled = true; const r = await api("impara", {off: t}); if (!r.ok) return toast(r.error); d.profile.learned = r.learned; toast("Tolto: non lo cerco più"); render(); }}, t + "  ✕"))) : null);
   const left = h("section", {class:"panel"},
     h("h2", null, "La mia ricerca"),
-    h("p", {class:"hint"}, "La ricerca parte da sola ogni mattina. Puoi cambiare quello che cerchi quando vuoi."),
+    h("p", {class:"hint"}, "La ricerca parte da sola tre volte al giorno (mattina, mezzogiorno e pomeriggio). Puoi cambiare quello che cerchi quando vuoi."),
     h("div", {class:"kv"},
       h("div", null, h("span", null, "Cosa cerchi"), a.desired || ""),
       h("div", null, h("span", null, "Ruoli che sto cercando per te"), on.join(", ")),
