@@ -41,7 +41,7 @@ def examples(tracker):
             continue
         row = (j["title"][:90], (j.get("company") or "")[:40])
         if f.get("state") == "discarded":
-            neg.append(row)
+            neg.append(row + (str(f.get("why") or "")[:80],))
         elif f.get("state") in LIKED:
             pos.append(row)
     return pos, neg
@@ -61,7 +61,7 @@ def learn(profile, tracker, log=print):
     cur = [t for c in profile.get("clusters") or [] if c.get("on", True) for t in c.get("titles_en", [])[:4]]
     user = (f"LAVORO DESIDERATO: {a.get('desired', '')[:800]}\nRUOLI GIÀ CERCATI: {', '.join(cur)}\n"
             f"ANNUNCI SALVATI O CANDIDATA:\n" + "\n".join(f"- {t} ({c})" for t, c in pos[-40:]) +
-            "\nANNUNCI SCARTATI:\n" + ("\n".join(f"- {t} ({c})" for t, c in neg[-30:]) or "- nessuno"))
+            "\nANNUNCI SCARTATI:\n" + ("\n".join(f"- {t} ({c})" + (f" perché: {w}" if w else "") for t, c, w in neg[-30:]) or "- nessuno"))
     base = [clean_title(t) for t, _ in pos]
     try:
         import ai
@@ -94,7 +94,8 @@ def apply(profile):
     if not (lr.get("titles_en") or lr.get("titles_it")):
         return profile
     p = dict(profile)
-    p["clusters"] = [{"id": "cL", "name": "Come quelli che hai salvato", "tier": 1, "on": True, "why": lr.get("summary", ""),
-                      "titles_en": lr.get("titles_en") or [], "titles_it": lr.get("titles_it") or [], "titles_local": {}}] \
-        + list(profile.get("clusters") or [])
+    # in coda: un annuncio che rientra in un gruppo dell'intervista resta in quel gruppo; il gruppo imparato allarga la ricerca
+    p["clusters"] = list(profile.get("clusters") or []) + [
+        {"id": "cL", "name": "Come quelli che hai salvato", "tier": 1, "on": True, "why": lr.get("summary", ""),
+         "titles_en": lr.get("titles_en") or [], "titles_it": lr.get("titles_it") or [], "titles_local": {}}]
     return p

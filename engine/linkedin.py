@@ -213,11 +213,12 @@ def fetch_linkedin(cfg, since, log=None, known_ids=(), on_read=None, local_since
     # 2) lettura degli annunci nuovi, fino allo scadere del tempo: prima i più adatti al profilo,
     #    alternando i paesi (il migliore di ogni paese passa davanti al decimo di un paese grande)
     rank = {}
+    near_rank = {p["name"]: 160 - 30 * n for n, p in enumerate((plan or {}).get("places") or [])}
     for c, ids in per_country.items():
         for r, i in enumerate(sorted((i for i in ids if i not in known_ids), key=lambda i: -found[i]["prio"])):
             # i titoli in una lingua che non è italiano o inglese si leggono per ultimi: di rado restano in elenco
             rank[i] = found[i]["prio"] - 1.5 * r - (40 if rules.probably_other_language(found[i]["title"], "") else 0) \
-                + (100 if found[i].get("near") else 0)  # gli annunci vicino casa si leggono per primi
+                + (near_rank.get(found[i].get("near"), 0) if found[i].get("near") else 0)  # prima la città principale
     order = sorted(rank, key=lambda i: -rank[i])
     log(f"  LinkedIn: {len(order)} annunci nuovi da leggere, dal più adatto ({len(found) - len(order)} già in archivio)")
     deadline = t0 + budget

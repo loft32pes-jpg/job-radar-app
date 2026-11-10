@@ -64,7 +64,7 @@ jobs:
           else:  # chi non apre l'app da più di 10 giorni non viene cercato (si riprende appena torna)
               index = json.loads(pathlib.Path("dati/utenti/index.json").read_text(encoding="utf-8"))
               limit = (datetime.date.today() - datetime.timedelta(days=10)).isoformat()
-              ids = [i for i in ids if (index.get(i) or {}).get("visto", "9999") >= limit]
+              ids = [i for i in ids if (index.get(i) or {}).get("visto", "9999") >= limit and not (index.get(i) or {}).get("admin")]
           print("utenti=" + json.dumps(sorted(ids)))
           EOF
 

@@ -79,6 +79,10 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
     since = started - timedelta(hours=hours)
     # vicino casa gli annunci sono pochi ogni giorno: per le città scelte si guarda l'ultima settimana
     places = (rules.SEARCH or {}).get("places") or []
+    place_order = {p["name"]: n for n, p in enumerate(places)}
+
+    def prio(j):  # 0 = città principale della persona, poi le altre città, poi il resto d'Europa
+        return place_order.get(j.get("near"), len(places) + 1) if j.get("near") else len(places) + 1
     local_since = started - timedelta(days=7)
     today = datetime.now().astimezone().date().isoformat()
     run_at = started.astimezone().isoformat(timespec="minutes")
@@ -153,7 +157,7 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
         if sig in sig_seen or sig in sig_key:
             return
         sig_key[sig] = key
-        live.submit(key, {"title": ev["title"], "company": ev["company"], "country": country}, ev.get("text", ""))
+        live.submit(key, {"title": ev["title"], "company": ev["company"], "country": country}, ev.get("text", ""), prio(ev))
 
     # LinkedIn è la fonte più lenta (una richiesta al secondo su 30 paesi): parte subito e lavora in parallelo alle altre
     log("Fonte: LinkedIn (30 paesi, in parallelo alle altre fonti) ...")
@@ -276,7 +280,9 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
 
     if rules.PROFILE and new_jobs:
         # giudizio AI: legge titolo e inizio dell'annuncio e dice quanto è adatto alla persona. Chi non c'entra esce dall'elenco.
-        ranked = sorted(new_jobs, key=lambda j: -j["score"])
+        ranked = sorted(new_jobs, key=lambda j: (prio(j), -j["score"]))
+        for j in ranked:
+            j["_prio"] = prio(j)
         votes = live.close(120)  # voti già dati durante la ricerca (finisce la coda rimasta)
         for j in ranked:
             key = normalize_url(j["url"])
@@ -286,6 +292,8 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
         left = [j for j in ranked if "ai_fit" not in j]
         log(f"Giudizio AI: {len(ranked) - len(left)} annunci già valutati durante la ricerca, {len(left)} da valutare ora ...")
         judge.run(rules.PROFILE, [(j, new_texts.get(normalize_url(j["url"]), "")) for j in left], log, budget_s=240)
+        for j in ranked:
+            j.pop("_prio", None)
         out = 0
         for j in ranked:
             fit = j.get("ai_fit")

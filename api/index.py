@@ -304,6 +304,8 @@ def a_preferito(body, uid):
             f.setdefault("log", []).append({"s": body["state"], "t": time.strftime("%Y-%m-%d")})
         if "note" in body:
             f["note"] = str(body["note"])[:3000]
+        if "why" in body:  # perché l'ha scartato: la ricerca e il giudice imparano da qui
+            f["why"] = " ".join(str(body["why"] or "").split())[:200]
     write(path, t, "Candidature aggiornate")
     return {"tracker": t}
 

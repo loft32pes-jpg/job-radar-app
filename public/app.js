@@ -331,11 +331,23 @@ async function setState(key, job, state, thenKit){
   if (isNew) t.favs[key] = {job, state, note:"", log:[{s: state, t: new Date().toISOString().slice(0, 10)}]};
   else { t.favs[key].state = state; (t.favs[key].log = t.favs[key].log || []).push({s: state, t: new Date().toISOString().slice(0, 10)}); }
   const label = state === "discarded" ? "Scartato" : isNew ? "Aggiunto alle candidature" : "Stato: " + STATE[state];
-  if (state === "discarded"){ closeSheet(); render(); }
+  if (state === "discarded"){ closeSheet(); render(); setTimeout(() => askWhy(key, job), 280); }
   else { render(); openApp(key, thenKit); }
   const ok = await track(isNew ? {key, fav: true, job, state} : {key, state}, label);
   if (!ok){ const r = await api("dati"); if (r.ok) S.data = r; render(); return; }
   if (sheetEl && sheetEl.dataset.k === key && !thenKit) openApp(key);
+}
+const WHY = ["Ruolo diverso da quello che cerco", "Settore che non mi interessa", "Troppo senior", "Troppo junior", "Città o zona",
+             "Agenzia per il lavoro", "Lingua richiesta", "Non mi convince l'azienda"];
+function askWhy(key, job){  /* facoltativo: un tocco basta, e la ricerca impara */
+  const f = favs()[key]; if (!f) return;
+  const other = h("input", {type:"text", maxlength:"120", placeholder:"Altro motivo (facoltativo)", "aria-label":"Altro motivo"});
+  const send = async why => { closeSheet(); f.why = why; await track({key, why}, "Grazie: ne terrò conto per i prossimi annunci"); };
+  openSheet(h("div", null, h("h2", null, "Perché lo scarti?"), h("div", {class:"co"}, [job.title, job.company].filter(Boolean).join(" · "))),
+    h("div", null, h("p", {class:"hint"}, "Facoltativo. Con il motivo imparo a toglierti gli annunci simili, non solo questo."),
+      h("div", {class:"wrap"}, WHY.map(w => h("button", {class:"chip", type:"button", onclick: () => send(w)}, w))),
+      h("div", {class:"cityrow"}, other, h("button", {class:"btn", type:"button", onclick: () => { const v = other.value.trim(); if (v) send(v); }}, "Invia"))),
+    h("div", {class:"actions"}, h("button", {class:"btn", type:"button", onclick: closeSheet}, "Salta")));
 }
 async function toggleFav(j){
   const key = keyOf(j), f = favs()[key];

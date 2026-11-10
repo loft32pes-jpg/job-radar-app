@@ -5,6 +5,7 @@ alla portata dell'utente anche se il titolo non era tra quelli previsti. Senza A
 """
 import json
 import os
+import itertools
 import queue
 import re
 import sys
@@ -36,6 +37,8 @@ Poi dai "fit" da 0 a 100, usando tutta la scala:
 Non alzare il voto solo perché il titolo è uguale: conta cosa si fa davvero nel ruolo.
 Se ricevi gli annunci che la persona ha SALVATO e quelli che ha SCARTATO, sono le sue scelte reali e valgono più delle tue
 ipotesi: un annuncio dello stesso tipo di quelli salvati vale almeno 60, uno dello stesso tipo di quelli scartati al massimo 39.
+Quando uno scarto ha un motivo ("perché: ..."), applicalo a tutti gli annunci simili per quel motivo (stesso settore, stesso
+livello, agenzia per il lavoro, stessa zona...), non solo a quell'annuncio.
 Conta anche il LIVELLO del lavoro che DESIDERA: un annuncio di un livello molto diverso (molto più semplice o molto più
 alto di quello che cerca) è un altro lavoro e vale al massimo 35, anche se contiene le stesse parole ("vendita", "clienti").
 Di ogni annuncio ricevi l'inizio, le mansioni e i requisiti ("[…]" segna un taglio). Leggi i requisiti: anni richiesti, lingue,
@@ -88,9 +91,10 @@ def _choices(profile):
     lr = profile.get("learned") or {}
     out = ""
     if lr.get("pos"):
-        out += "\nANNUNCI CHE HA SALVATO O A CUI SI È CANDIDATA (le piacciono): " + "; ".join(f"{t} ({c})" for t, c in lr["pos"][-15:])
+        out += "\nANNUNCI CHE HA SALVATO O A CUI SI È CANDIDATA (le piacciono): " + "; ".join(f"{x[0]} ({x[1]})" for x in lr["pos"][-15:])
     if lr.get("neg"):
-        out += "\nANNUNCI CHE HA SCARTATO: " + "; ".join(f"{t} ({c})" for t, c in lr["neg"][-15:])
+        out += "\nANNUNCI CHE HA SCARTATO: " + "; ".join(
+            f"{x[0]} ({x[1]})" + (f" perché: {x[2]}" if len(x) > 2 and x[2] else "") for x in lr["neg"][-20:])
     return out
 
 
@@ -145,7 +149,8 @@ class Live:
     def __init__(self, profile):
         self.conn, self.models = _models()
         self.on = bool(self.conn and self.models and profile)
-        self.results, self.sent, self.tries, self.q = {}, set(), {}, queue.Queue()
+        self.results, self.sent, self.tries, self.q = {}, set(), {}, queue.PriorityQueue()
+        self.n = itertools.count()
         self.closing, self.deadline, self.busy = False, None, 0
         self.collect, self.tally = threading.Lock(), threading.Lock()
         self.threads, self.out = [], []  # out: modelli che hanno finito la quota gratuita di oggi
@@ -155,11 +160,12 @@ class Live:
             for t in self.threads:
                 t.start()
 
-    def submit(self, key, job, text):
-        """job: dizionario con title, company, country. Ogni chiave viene valutata una volta sola."""
+    def submit(self, key, job, text, prio=5):
+        """job: dizionario con title, company, country. Ogni chiave viene valutata una volta sola.
+        prio: più basso = valutato prima (la città principale della persona viene prima di tutto)."""
         if self.on and not self.closing and key not in self.sent:
             self.sent.add(key)
-            self.q.put((key, job, text))
+            self.q.put((prio, next(self.n), (key, job, text)))
 
     def _late(self):
         return bool(self.deadline and time.time() > self.deadline)
@@ -174,7 +180,7 @@ class Live:
             with self.collect:  # un gruppo alla volta si riempie, così non restano tre gruppi a metà
                 while len(batch) < limit:
                     try:
-                        batch.append(self.q.get(timeout=1))
+                        batch.append(self.q.get(timeout=1)[2])
                         first = first or time.time()
                     except queue.Empty:
                         if self.closing or (batch and time.time() - first > 10):
@@ -198,7 +204,7 @@ class Live:
                         self.out.append(model)
                         if len(self.out) < len(self.models):
                             for item in batch:
-                                self.q.put(item)
+                                self.q.put((0, next(self.n), item))
                         with self.tally:
                             self.busy -= 1
                         return
@@ -210,7 +216,7 @@ class Live:
                 self.out.append(model)
                 if len(self.out) < len(self.models):
                     for item in batch:
-                        self.q.put(item)
+                        self.q.put((0, next(self.n), item))
                 with self.tally:
                     self.busy -= 1
                 return
@@ -221,7 +227,7 @@ class Live:
             for i, item in enumerate(batch):  # chi è rimasto senza risposta torna in coda una volta
                 if i not in voted and not self.tries.get(item[0]):
                     self.tries[item[0]] = 1
-                    self.q.put(item)
+                    self.q.put((0, next(self.n), item))
             with self.tally:
                 self.busy -= 1
 
@@ -243,7 +249,7 @@ def run(profile, items, log=None, budget_s=200):
         return 0
     t0 = time.time()
     for n, (j, text) in enumerate(items):
-        live.submit(n, j, text)
+        live.submit(n, j, text, j.get("_prio", 5))
     votes = live.close(budget_s)
     for n, vote in votes.items():
         items[n][0].update(vote)
