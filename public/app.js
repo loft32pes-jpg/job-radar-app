@@ -582,6 +582,24 @@ function viewMe(){
       "Quando salvi annunci, ti candidi o ne scarti, imparo cosa ti piace e allargo la ricerca a quei ruoli. Gli annunci scartati abbassano il voto di quelli simili."),
     lr.titles.length ? h("div", {class:"wrap"}, lr.titles.map(t => h("button", {class:"chip", type:"button", "aria-pressed":"true", title:"Togli",
       onclick: async e => { e.target.disabled = true; const r = await api("impara", {off: t}); if (!r.ok) return toast(r.error); d.profile.learned = r.learned; toast("Tolto: non lo cerco più"); render(); }}, t + "  ✕"))) : null);
+  const nt = (d.profile && d.profile.notify) || {};
+  const ntBox = h("div", {class:"sec"}, h("h4", null, "Avvisi sul telefono"),
+    nt.topic ? [
+      h("p", {class:"hint"}, `Quando trovo annunci nuovi con voto da ${nt.min || 70} in su ti mando una notifica, prima quelli della tua città. Gratis, senza account.`),
+      h("ol", {class:"hint", style:"padding-left:18px;margin:6px 0 10px"},
+        h("li", null, "Installa l'app gratuita «ntfy» (Play Store o App Store)."),
+        h("li", null, "Tocca «Iscriviti» qui sotto: si apre ntfy sul tuo canale personale. Se non si apre, in ntfy premi + e scrivi il nome del canale: ", h("b", null, nt.topic)),
+        h("li", null, "Premi «Mandami una prova» per controllare che arrivi.")),
+      h("div", {class:"actions", style:"flex-wrap:wrap"},
+        h("a", {class:"btn solid", href: "ntfy://ntfy.sh/" + nt.topic, onclick: () => setTimeout(() => { if (!document.hidden) location.href = "https://ntfy.sh/" + nt.topic; }, 1200)}, "Iscriviti"),
+        h("button", {class:"btn", type:"button", onclick: async e => { e.target.disabled = true; const r = await api("avvisi", {prova: true}); e.target.disabled = false; toast(r.ok ? "Avviso di prova inviato" : r.error); }}, "Mandami una prova")),
+      h("div", {class:"wrap", style:"margin-top:10px"}, [60, 70, 80].map(m => h("button", {class:"chip", type:"button", "aria-pressed": String((nt.min || 70) === m),
+        onclick: async () => { const r = await api("avvisi", {min: m}); if (!r.ok) return toast(r.error); d.profile.notify = r.notify; render(); }}, `Voto da ${m}`))),
+      h("button", {class:"linkbtn", type:"button", onclick: async () => { const r = await api("avvisi", {on: false}); if (!r.ok) return toast(r.error); d.profile.notify = {}; toast("Avvisi spenti"); render(); }}, "Spegni gli avvisi")
+    ] : [
+      h("p", {class:"hint"}, "Ricevi una notifica quando escono annunci nuovi adatti a te, prima quelli della tua città. Gratis, con l'app ntfy, senza account."),
+      h("button", {class:"btn", type:"button", onclick: async e => { e.target.disabled = true; const r = await api("avvisi", {on: true}); if (!r.ok){ e.target.disabled = false; return toast(r.error); } d.profile.notify = r.notify; render(); }}, "Attiva gli avvisi")
+    ]);
   const left = h("section", {class:"panel"},
     h("h2", null, "La mia ricerca"),
     h("p", {class:"hint"}, "La ricerca parte da sola tre volte al giorno (mattina, mezzogiorno e pomeriggio). Puoi cambiare quello che cerchi quando vuoi."),
@@ -591,7 +609,7 @@ function viewMe(){
       a.prefer ? h("div", null, h("span", null, "Settori che preferisci"), a.prefer) : null,
       a.avoid ? h("div", null, h("span", null, "Settori esclusi"), a.avoid) : null,
       d.run ? h("div", null, h("span", null, "Ultima ricerca"), `${fmtWhen(d.run.at)}: ${d.jobs.length} annunci in ${d.run.minutes} minuti`) : null),
-    cities, learned,
+    cities, learned, ntBox,
     h("div", {class:"actions", style:"flex-direction:column"},
       h("button", {class:"btn solid", type:"button", onclick: () => viewInterview(a)}, "Cambia la mia ricerca"),
       h("button", {class:"btn", type:"button", onclick: () => { const t = light ? "dark" : "light"; document.documentElement.dataset.theme = t; store.set("theme", t); render(); }}, light ? "Passa al tema scuro" : "Passa al tema chiaro"),

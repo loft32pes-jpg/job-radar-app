@@ -176,7 +176,7 @@ def a_dati(_body, uid):
     summary = None
     if prof:
         lr = lr or {}
-        summary = {"answers": prof.get("answers") or {}, "clusters": [{"name": c["name"], "on": c.get("on", True)}
+        summary = {"notify": prof.get("notify") or {}, "answers": prof.get("answers") or {}, "clusters": [{"name": c["name"], "on": c.get("on", True)}
                                                                      for c in prof.get("clusters", [])],
                    "learned": {"titles": (lr.get("titles_en") or []) + (lr.get("titles_it") or []), "summary": lr.get("summary") or "",
                                "at": lr.get("at") or ""}}
@@ -221,6 +221,8 @@ def a_profilo(body, uid):
     old = read(f"utenti/{uid}/profilo.json", {}) or {}
     if old.get("learned_off"):  # i ruoli imparati che ha tolto restano tolti anche se rifà l'intervista
         clean["learned_off"] = old["learned_off"]
+    if old.get("notify"):  # e gli avvisi sul telefono restano accesi
+        clean["notify"] = old["notify"]
     write(f"utenti/{uid}/profilo.json", clean, "Profilo aggiornato")
     write(f"utenti/{uid}/risultati.json", {"run": None, "families": {}, "jobs": []}, "Profilo cambiato: risultati azzerati")
     start_search(uid)
@@ -425,6 +427,42 @@ def a_importa(body, uid):
     return {"tracker": t, "job": job}
 
 
+NTFY = "https://ntfy.sh/"
+APP_URL = os.environ.get("JR_APP_URL", "https://job-radar-ivory-phi.vercel.app")
+
+
+def ntfy_send(topic, title, text):
+    """Notifica sul telefono (app ntfy). Il canale è un nome casuale che conosce solo la persona."""
+    req = Request(NTFY + topic, data=text.encode("utf-8"), method="POST",
+                  headers={"Title": title.encode("utf-8").decode("latin-1", "ignore"), "Click": APP_URL, "Tags": "briefcase",
+                           "Content-Type": "text/plain; charset=utf-8"})
+    with urlopen(req, timeout=15) as r:
+        return r.status == 200
+
+
+def a_avvisi(body, uid):
+    """Accende, spegne o prova gli avvisi sul telefono."""
+    prof = read(f"utenti/{uid}/profilo.json", None)
+    if not prof:
+        raise Fail("Prima fai l'intervista con Vale.")
+    n = prof.get("notify") or {}
+    if body.get("on") is True and not n.get("topic"):
+        n = {"topic": "jobradar-" + secrets.token_hex(10), "min": 70}
+    elif body.get("on") is False:
+        n = {}
+    if body.get("min") in (60, 70, 80):
+        n["min"] = body["min"]
+    if n != (prof.get("notify") or {}):
+        prof["notify"] = n
+        write(f"utenti/{uid}/profilo.json", prof, "Avvisi sul telefono")
+    if body.get("prova") and n.get("topic"):
+        try:
+            ntfy_send(n["topic"], "Job Radar: avvisi attivi", "Da ora ti scrivo qui quando trovo annunci nuovi adatti a te.")
+        except Exception:
+            raise Fail("Non riesco a mandare l'avviso di prova. Riprova tra un momento.", 503)
+    return {"notify": n}
+
+
 def a_luogo(body, _uid):
     return {"place": cand.find_place(str(body.get("q") or "")[:80])}
 
@@ -487,7 +525,7 @@ def a_compila(body, uid):
             "key": next((k for k, f in t["favs"].items() if f is match), None), "model": model}
 
 
-ACTIONS = {"login": a_login, "entra": a_entra, "citta": a_citta, "impara": a_impara, "importa": a_importa, "dati": a_dati, "stato": a_stato, "intervista": a_intervista, "profilo": a_profilo,
+ACTIONS = {"login": a_login, "entra": a_entra, "citta": a_citta, "impara": a_impara, "importa": a_importa, "avvisi": a_avvisi, "dati": a_dati, "stato": a_stato, "intervista": a_intervista, "profilo": a_profilo,
            "aggiorna": a_aggiorna, "preferito": a_preferito, "luogo": a_luogo, "kit": a_kit, "compila": a_compila, "preferenze": a_preferenze}
 
 

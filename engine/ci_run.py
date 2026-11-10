@@ -41,6 +41,31 @@ def write(path, obj):
     path.write_text(json.dumps(obj, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
 
+def notify(prof, new):
+    """Avviso sul telefono (ntfy) con i migliori annunci nuovi. Nel registro pubblico non va né il canale né i titoli."""
+    n = prof.get("notify") or {}
+    if not n.get("topic"):
+        return
+    places = [p["name"] for p in (prof.get("answers") or {}).get("places") or []]
+    good = [j for j in new if j.get("score", 0) >= int(n.get("min") or 70)]
+    if not good:
+        return
+    good.sort(key=lambda j: (places.index(j["near"]) if j.get("near") in places else len(places), -j["score"]))
+    lines = [f"{j['score']} · {j.get('title_it') or j['title']} · {j['company']}" + (f" · {j['city']}" if j.get("city") else "") for j in good[:6]]
+    if len(good) > 6:
+        lines.append(f"e altri {len(good) - 6}")
+    title = f"Job Radar: {len(good)} " + ("annuncio nuovo" if len(good) == 1 else "annunci nuovi")
+    from urllib.request import Request, urlopen
+    try:
+        req = Request("https://ntfy.sh/" + n["topic"], data="\n".join(lines).encode("utf-8"), method="POST",
+                      headers={"Title": title, "Click": os.environ.get("JR_APP_URL", "https://job-radar-ivory-phi.vercel.app"),
+                               "Tags": "briefcase", "Content-Type": "text/plain; charset=utf-8"})
+        urlopen(req, timeout=15).close()
+        print("Avviso sul telefono inviato")
+    except Exception:
+        print("Avviso sul telefono non inviato")
+
+
 def main():
     uid = sys.argv[1]
     user = REPO / "dati" / "utenti" / uid
@@ -159,6 +184,7 @@ def main():
     notes = ["Oggi la quota gratuita dell'intelligenza artificiale è finita a metà ricerca: alcuni annunci hanno un voto meno preciso."] if notes else []
     write(user / "risultati.json", {"run": dict(run, seconds=round(time.time() - t0), notes=notes), "families": fams, "jobs": jobs})
     write(user / "stato.json", {"running": False, "ok": True, "at": run["at"], "total": len(jobs), "minutes": run.get("minutes")})
+    notify(read(profile, {}), [j for j in jobs if j.get("first_seen") == run["at"]])
     print(f"{len(jobs)} annunci, {round((time.time() - t0) / 60)} minuti")
     print("\n".join(l for l in log.splitlines() if "LinkedIn:" in l or "Giudizio AI:" in l or "finestra" in l)[-2500:])
     return 0
