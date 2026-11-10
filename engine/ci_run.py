@@ -128,15 +128,25 @@ def main():
         texts.update(read(f, {}))
     # stesso annuncio pubblicato con più marchi dello stesso gruppo (es. MioDottore, Doctoralia, Jameda): uno solo, il migliore
     import re as _re
+
+    def words(t):
+        return set(_re.findall(r"\w{4,}", (t or "")[:2000].lower()))
     seen_ad, unique = {}, []
     for j in jobs:  # già in ordine di voto
-        body = _re.sub(r"\W+", " ", (texts.get(normalize(j["url"])) or "")[:400].lower()).strip()
+        w = words(texts.get(normalize(j["url"])))
         sig = (_re.sub(r"\W+", " ", j["title"].lower()).strip(), (j.get("city") or "").lower())
-        prev = seen_ad.get(sig)
-        same_day = prev and (prev["day"] == (j.get("posted_at") or "")[:10])
-        if prev and ((body and prev["body"] == body) or ((not body or not prev["body"]) and same_day)):
+        day = (j.get("posted_at") or "")[:10]
+        dup = False
+        for prev_w, prev_day in seen_ad.get(sig, []):  # stesso titolo e città: doppione se il testo è quasi uguale
+            if w and prev_w:
+                dup = len(w & prev_w) / max(1, min(len(w), len(prev_w))) >= 0.7
+            else:  # manca un testo: doppione solo se pubblicato lo stesso giorno
+                dup = day == prev_day
+            if dup:
+                break
+        if dup:
             continue
-        seen_ad.setdefault(sig, {"body": body, "day": (j.get("posted_at") or "")[:10]})
+        seen_ad.setdefault(sig, []).append((w, day))
         unique.append(j)
     jobs = unique
     keep = {normalize(j["url"]) for j in jobs}
