@@ -68,15 +68,19 @@ def main():
         except Exception as e:
             print(f"{name}: elenco modelli non disponibile ({type(e).__name__})")
             continue
-        ids = sorted({i for i in ids if not SKIP.search(i)}, key=rank, reverse=True)[:9]
-        ok = []
+        # niente "pro" (fuori dal piano gratuito) né alias "-latest" (stessa quota di un altro modello): ogni modello in più
+        # ha la sua quota giornaliera, quindi più modelli = più annunci valutati
+        ids = sorted({i for i in ids if not SKIP.search(i) and not re.search(r"(?<![a-z])pro\b|latest", i)}, key=rank, reverse=True)[:14]
+        ok, busy = [], []
         for mid in ids:
             sec, err = probe(base, p["api_key"], mid)
             print(f"{name} {mid}: " + (f"risponde in {sec} s" if sec is not None else f"non disponibile ({err})"))
             if sec is not None and sec < 25:
                 ok.append(mid)
+            elif err == 503:  # sovraccarico del momento, non quota finita: al giudice serve lo stesso (se non risponde esce da solo)
+                busy.append(mid)
         if ok:
-            result["fornitori"][name] = {"scrittura": ok[:4], "giudice": ok[:4]}
+            result["fornitori"][name] = {"scrittura": ok[:4], "giudice": (ok + busy)[:8]}
             candidates += [(rank(m), name, m) for m in ok[:4]]
     result["scrittura"] = [[n, m] for _, n, m in sorted(candidates, reverse=True)]
     if not result["scrittura"]:
