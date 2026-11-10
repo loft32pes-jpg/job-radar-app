@@ -78,6 +78,7 @@ def main():
     shutil.copytree(REPO / "engine", WORK / "scripts", ignore=shutil.ignore_patterns("__pycache__"))
     (WORK / "data" / "archive").mkdir(parents=True)
     (WORK / "profilo").mkdir()
+    write(WORK / "data" / "testi_letti.json", read(user / "testi.json", {}))  # testi già letti: LinkedIn non li rilegge
     for f in (REPO / "engine_data").glob("*.json"):
         shutil.copy(f, WORK / "data" / f.name)
     # se il profilo è cambiato dall'ultima ricerca, gli annunci in archivio erano stati scelti con quello vecchio: si riparte

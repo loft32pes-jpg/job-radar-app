@@ -162,7 +162,8 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
     # LinkedIn è la fonte più lenta (una richiesta al secondo su 30 paesi): parte subito e lavora in parallelo alle altre
     log("Fonte: LinkedIn (30 paesi, in parallelo alle altre fonti) ...")
     li_pool = ThreadPoolExecutor(max_workers=1)
-    li_future = li_pool.submit(linkedin.fetch_linkedin, cfg.get("linkedin", {}), since, log, known_li, prejudge, local_since)
+    cached = {k.rsplit("/", 1)[-1]: v for k, v in read_json(DATA / "testi_letti.json", {}).items() if "linkedin.com/jobs/view/" in k and v}
+    li_future = li_pool.submit(linkedin.fetch_linkedin, cfg.get("linkedin", {}), since, log, known_li, prejudge, local_since, cached)
     for name, fn in steps:
         log(f"Fonte: {name} ...")
         try:

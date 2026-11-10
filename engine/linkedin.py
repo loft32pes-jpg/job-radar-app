@@ -124,7 +124,7 @@ def _priority(title: str) -> int:
 LOCAL_MILES = 25  # raggio della ricerca per città (LinkedIn ragiona in miglia: circa 40 km)
 
 
-def fetch_linkedin(cfg, since, log=None, known_ids=(), on_read=None, local_since=None):
+def fetch_linkedin(cfg, since, log=None, known_ids=(), on_read=None, local_since=None, cached=None):
     """known_ids: annunci LinkedIn già in archivio (non serve rileggerli, basta sapere che sono ancora nella finestra)."""
     log = log or (lambda m: None)
     if not cfg.get("enabled", True):
@@ -224,6 +224,19 @@ def fetch_linkedin(cfg, since, log=None, known_ids=(), on_read=None, local_since
     deadline = t0 + budget
     if max_details:
         order = order[:max_details]
+    # testi già letti in ricerche passate (anche con un profilo diverso): non si rileggono, il tempo va agli annunci nuovi
+    cached = cached or {}
+    for jid in [i for i in order if i in cached]:
+        found[jid]["text"] = cached[jid]
+        if on_read:
+            try:
+                on_read(_job(jid, found[jid]))
+            except Exception:
+                pass
+    if cached:
+        before = len(order)
+        order = [i for i in order if i not in cached]
+        log(f"  LinkedIn: {before - len(order)} testi già letti in passato, ne restano {len(order)} da leggere")
 
     def detail(jid):
         if pacer.dead or time.time() > deadline:
