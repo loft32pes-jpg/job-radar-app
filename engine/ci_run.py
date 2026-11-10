@@ -126,6 +126,19 @@ def main():
     texts = read(user / "testi.json", {})
     for f in sorted((WORK / "data" / "texts").glob("????-??-??.json")):
         texts.update(read(f, {}))
+    # stesso annuncio pubblicato con più marchi dello stesso gruppo (es. MioDottore, Doctoralia, Jameda): uno solo, il migliore
+    import re as _re
+    seen_ad, unique = {}, []
+    for j in jobs:  # già in ordine di voto
+        body = _re.sub(r"\W+", " ", (texts.get(normalize(j["url"])) or "")[:400].lower()).strip()
+        sig = (_re.sub(r"\W+", " ", j["title"].lower()).strip(), (j.get("city") or "").lower())
+        prev = seen_ad.get(sig)
+        same_day = prev and (prev["day"] == (j.get("posted_at") or "")[:10])
+        if prev and ((body and prev["body"] == body) or ((not body or not prev["body"]) and same_day)):
+            continue
+        seen_ad.setdefault(sig, {"body": body, "day": (j.get("posted_at") or "")[:10]})
+        unique.append(j)
+    jobs = unique
     keep = {normalize(j["url"]) for j in jobs}
     write(user / "testi.json", {k: v[:12000] for k, v in texts.items() if k in keep and v})
 
