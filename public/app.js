@@ -149,6 +149,8 @@ function render(){
 }
 
 /* ---------- annunci ---------- */
+/* "nuovo" = trovato per la prima volta nelle ultime 24 ore (le ricerche sono tre al giorno: non solo l'ultima) */
+const recent = j => { const t = Date.parse(j.first_seen || ""); return !isNaN(t) && Date.now() - t < 864e5; };
 function ring(score){
   const c = 2 * Math.PI * 22, cls = score >= 75 ? "" : score >= 55 ? " mid" : " low";
   return h("div", {class:"ring" + cls, html: `<svg viewBox="0 0 52 52"><circle class="bgc" cx="26" cy="26" r="22"/><circle class="fg" cx="26" cy="26" r="22" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - Math.max(0, Math.min(100, score)) / 100)}"/></svg>`},
@@ -160,7 +162,7 @@ function starBtn(j){
     onclick: e => { e.stopPropagation(); toggleFav(j); }});
 }
 function card(j, fav){
-  const isNew = S.data.run && j.first_seen === S.data.run.at;
+  const isNew = recent(j);
   const f = fav || favs()[keyOf(j)];
   const tags = [isNew && !f ? h("span", {class:"tag new"}, "Nuovo") : null,
     f ? h("span", {class:"tag st st-" + f.state}, STATE[f.state] || "Mi interessa") : null,
@@ -200,7 +202,7 @@ function lookPlace(q){
 function filtered(){
   const f = S.f, q = f.q.trim().toLowerCase(), hid = hidden(), runAt = S.data.run && S.data.run.at, p = S.place;
   let out = S.data.jobs.filter(j => !hid[keyOf(j)] && j.score >= f.min && (!f.fam || j.role_family === f.fam) && (!f.country || j.country === f.country) &&
-    (!f.mode || modeOf(j) === f.mode) && (!f.fresh || j.first_seen === runAt) &&
+    (!f.mode || modeOf(j) === f.mode) && (!f.fresh || recent(j)) &&
     (!q || inPlace(j, p) || (j.title + " " + (j.title_it || "") + " " + j.company + " " + (j.city || "") + " " + j.country).toLowerCase().includes(q)));
   if (f.sort === "date") out = out.slice().sort((a, b) => String(b.posted_at || "").localeCompare(String(a.posted_at || "")));
   return out;
@@ -217,7 +219,7 @@ function viewJobs(){
     h("h1", null, h("em", null, String(jobs.length)), " annunci adatti a te"),
     h("div", {class:"stats"},
       h("div", {class:"stat"}, h("b", null, String(top)), h("span", null, "voto da 80 in su")),
-      h("div", {class:"stat"}, h("b", null, String(jobs.filter(j => d.run && j.first_seen === d.run.at).length)), h("span", null, "nuovi da ieri")),
+      h("div", {class:"stat"}, h("b", null, String(jobs.filter(recent).length)), h("span", null, "nuovi nelle ultime 24 ore")),
       h("div", {class:"stat"}, h("b", null, String(countries.length)), h("span", null, "paesi")),
       h("div", {class:"stat"}, h("b", null, String(jobs.filter(j => modeOf(j) === "remote").length)), h("span", null, "da remoto"))),
     (d.run && d.run.notes || []).map(n => h("div", {class:"note"}, n)),
