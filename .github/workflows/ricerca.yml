@@ -65,6 +65,21 @@ jobs:
               index = json.loads(pathlib.Path("dati/utenti/index.json").read_text(encoding="utf-8"))
               limit = (datetime.date.today() - datetime.timedelta(days=10)).isoformat()
               ids = [i for i in ids if (index.get(i) or {}).get("visto", "9999") >= limit and not (index.get(i) or {}).get("admin")]
+
+              def minutes(v):
+                  try:
+                      t = datetime.datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+                      return (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() / 60
+                  except (ValueError, TypeError):
+                      return 1e9
+
+              def busy(i):  # ricerca in corso o finita da poco (i cron di GitHub partono anche con ore di ritardo): si salta
+                  try:
+                      st = json.loads(pathlib.Path(f"dati/utenti/{i}/stato.json").read_text(encoding="utf-8"))
+                  except (OSError, ValueError):
+                      return False
+                  return (st.get("running") and minutes(st.get("started_at")) < 60) or (st.get("ok") and minutes(st.get("at")) < 90)
+              ids = [i for i in ids if not busy(i)]
           print("utenti=" + json.dumps(sorted(ids)))
           EOF
 
@@ -73,6 +88,10 @@ jobs:
     if: needs.elenco.outputs.utenti != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 50
+    # una sola ricerca alla volta per persona: una seconda (cron in ritardo + lancio dall'app) aspetta la fine della prima
+    concurrency:
+      group: persona-${{ matrix.utente }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix:
@@ -89,21 +108,33 @@ jobs:
         with:
           python-version: "3.12"
       - name: Segna la ricerca come in corso
+        id: segna
         working-directory: dati
         run: |
           git config user.name "job-radar-bot"
           git config user.email "job-radar-bot@users.noreply.github.com"
+          # ricerca automatica rimasta in coda dietro un'altra appena finita: non serve rifarla
+          if [ "${{ github.event_name }}" = "schedule" ] && python3 -c "
+          import datetime, json, sys
+          st = json.load(open('utenti/${{ matrix.utente }}/stato.json', encoding='utf-8'))
+          t = datetime.datetime.fromisoformat(str(st.get('at')).replace('Z', '+00:00'))
+          sys.exit(0 if st.get('ok') and (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() < 5400 else 1)
+          " 2>/dev/null; then
+            echo "salta=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           echo "{\"running\":true,\"started_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "utenti/${{ matrix.utente }}/stato.json"
           git add -A && git commit -q -m "Ricerca avviata" || true
           for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break || sleep 4; done
       - name: Ricerca
+        if: steps.segna.outputs.salta != '1'
         env:
           JR_CONFIG: ${{ secrets.JR_CONFIG }}
           JR_LI_MINUTES: "30"
           JR_LI_SHARE: "0.6"
         run: python engine/ci_run.py "${{ matrix.utente }}"
       - name: Salva i risultati
-        if: always()
+        if: always() && steps.segna.outputs.salta != '1'
         working-directory: dati
         run: |
           if grep -q '"running":true' "utenti/${{ matrix.utente }}/stato.json"; then
