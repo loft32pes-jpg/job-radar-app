@@ -290,29 +290,33 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
         new_jobs.append(job)
         added += 1
 
-    import learn
-    applied_titles = {learn.clean_title(x[0]).lower() for x in ((rules.PROFILE or {}).get("learned") or {}).get("pos") or []
-                      if len(x) > 2 and x[2]}
-
     def voted(j):
         """Applica il voto dell'AI all'annuncio. Ritorna False se deve uscire dall'elenco."""
-        # stesso ruolo di un annuncio a cui si è candidata o che ha aggiunto lei: il giudice non può dargli meno di 75
-        if learn.clean_title(j["title"]).lower() in applied_titles and j["ai_fit"] < 75:
-            j["ai_fit"] = 75
-            j["ai_why"] = "Stesso ruolo di un annuncio a cui ti sei candidata."
-        fit = j["ai_fit"]
+        fit, like = j["ai_fit"], j.get("ai_like", j["ai_fit"])
         excluded = bool(j.pop("ai_x", False))            # settore escluso dall'utente: fuori, qualunque sia il voto
         liked = bool(j.pop("ai_p", False)) or j.get("preferred")
         j["score_rules"] = j["score"]
-        j["score"] = min(100, round(0.25 * j["score"] + 0.75 * fit) + (8 if liked else 0))
+        j["score"] = rules.final_score(j["score"], fit, like, liked)
         if liked and not any(r["t"] == "Settore che preferisci" for r in j["reasons"]):
             j["reasons"].insert(1, {"t": "Settore che preferisci", "k": "ok"})
             j["preferred"] = True
+        gap = j.get("ai_gap") or ""
+        if not gap:
+            j.pop("ai_gap", None)
+        # i due voti si leggono anche nei motivi: se le piace ma non è adatta glielo si dice, con il perché
+        if like >= 70 and fit < 60:
+            j["reasons"].insert(1, {"t": "È il tipo di annuncio che scegli, ma potresti non essere adatta" + (f": {gap}" if gap else ""), "k": "warn"})
+        elif gap:
+            j["reasons"].insert(1, {"t": gap[0].upper() + gap[1:], "k": "warn"})
+        elif like >= 70:
+            j["reasons"].insert(1, {"t": "In linea con gli annunci che scegli", "k": "ok"})
+        elif like < 45:
+            j["reasons"].insert(1, {"t": "Adatta a te, ma lontano dagli annunci che scegli", "k": "warn"})
         j["reasons"].insert(1, {"t": j.get("ai_why") or "Valutato dall'AI", "k": "ok" if fit >= 60 else "warn"})
         # sotto 40 c'entra poco o niente. Un titolo fuori dai ruoli della persona, entrato solo perché è in una sua città
         # (parola di mestiere imparata, azienda seguita), resta solo se il giudice lo trova davvero adatto: i suoi criteri
         # vengono prima del numero di annunci
-        return fit >= (rules.WIDE_MIN if rules.classify(j["title"]) is None else 40) and not excluded
+        return rules.keeps(fit, like, wide=rules.classify(j["title"]) is None) and not excluded
 
     votes = {}
     if rules.PROFILE and not new_jobs and retry:  # nessun annuncio nuovo: il giudice lavora solo su quelli rimasti senza voto

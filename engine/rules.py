@@ -12,6 +12,23 @@ import re
 MIN_SCORE = 45
 WIDE_MIN = 60  # voto minimo del giudice AI per un titolo fuori dai ruoli della persona, entrato solo dal filtro largo delle sue città
 
+
+# Il giudice AI dà due voti: "fit" (quanto la persona è adatta alla posizione) e "like" (quanto l'annuncio è ciò che vuole).
+# Contano tutti e due. Pesa di più l'essere adatta: un annuncio che piace ma non è alla sua portata serve poco, però resta
+# in elenco con il motivo scritto chiaro, perché è lei a decidere se provarci.
+def final_score(rules_pts, fit, like, preferred=False):
+    return max(0, min(100, round(0.15 * rules_pts + 0.50 * fit + 0.35 * like) + (8 if preferred else 0)))
+
+
+def keeps(fit, like, wide=False):
+    """L'annuncio resta in elenco? wide: titolo fuori dai suoi ruoli, entrato dal filtro largo delle città."""
+    both = 0.6 * fit + 0.4 * like
+    if wide:  # deve essere adatta e deve piacerle: nessuno dei due voti basta da solo
+        return fit >= 50 and both >= WIDE_MIN
+    if like < 30 or fit < 25:  # è il tipo di annuncio che scarta, oppure non ha proprio i requisiti
+        return False
+    return both >= 40 and (fit >= 40 or like >= 70)  # poco adatta: resta solo se è proprio ciò che vuole, e glielo si dice
+
 # (famiglia, punti base 0-40, regex sul titolo). Vince la prima che combacia.
 FAMILIES = [
     ("tech_sales", 40,

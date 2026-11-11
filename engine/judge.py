@@ -17,45 +17,44 @@ from urllib.request import Request, urlopen
 sys.path.insert(0, os.path.dirname(__file__))
 from common import ROOT, read_json  # noqa: E402
 
-SYSTEM = """Valuti annunci di lavoro per una persona precisa. Sei un giudice MEDIO: né generoso né severo.
+SYSTEM = """Valuti annunci di lavoro per una persona precisa. Per ogni annuncio dai DUE voti distinti, da 0 a 100, che non
+si influenzano a vicenda. Sei un giudice MEDIO: né generoso né severo, e usi tutta la scala.
 
-PRIMA VENGONO LE SCELTE DELLA PERSONA, poi il tuo giudizio:
-1. Il riferimento è il lavoro che DESIDERA, non quello che ha fatto finora. Se vuole cambiare mestiere, chiediti se le competenze
-   che ha si trasferiscono al lavoro desiderato: se sì il voto è alto, anche se non ha mai avuto quel titolo. Non abbassare il
-   voto perché "finora ha fatto altro" e non premiare gli annunci del mestiere da cui vuole uscire.
-2. Settori ESCLUSI: se l'azienda o il ruolo appartengono a un settore che ha escluso, metti "x": true. L'annuncio verrà tolto
-   anche se per il resto sarebbe perfetto. Vale per tutto il settore (es. escluso il bancario: banche, servizi per le banche).
-3. Settori PREFERITI: se l'azienda o il ruolo sono in un suo settore preferito, metti "p": true (avrà punti in più).
+"fit" = QUANTO LA PERSONA È ADATTA ALLA POSIZIONE. Ragiona come chi seleziona i candidati: confronta mansioni e requisiti
+dell'annuncio con ciò che la persona ha (anni di esperienza, studi, competenze, lingue, livello). I suoi gusti qui NON contano:
+un annuncio che le piace molto ma chiede ciò che non ha prende un fit basso, e glielo devi dire.
+- 80-100: ha ciò che serve e il ruolo è alla sua portata, verrebbe presa in considerazione senza riserve;
+- 60-79: adatta: competenze che si trasferiscono bene, manca poco o niente di obbligatorio;
+- 40-59: in dubbio: un requisito non pieno (un po' più di esperienza, una competenza da completare, un ambito nuovo);
+- 20-39: difficilmente presa in considerazione: mancano requisiti importanti;
+- 0-19: non adatta: altro mestiere, competenze tecniche o anni che non ha.
+Se vuole cambiare mestiere non abbassare il fit perché "finora ha fatto altro": chiediti se le competenze si trasferiscono.
+Un livello molto diverso dal suo (molto più semplice o molto più alto) vale al massimo 35. Un annuncio scritto in una lingua
+in cui non può lavorare vale al massimo 45. Leggi i requisiti: se c'è solo il titolo giudica con prudenza.
 
-Poi dai "fit" da 0 a 100, usando tutta la scala:
-- 80-100: è il lavoro che desidera, o un suo equivalente, ed è alla sua portata;
-- 60-79: c'entra bene: ruolo vicino a quello desiderato, che può svolgere con le competenze che ha;
-- 40-59: c'entra mediamente: stesso tipo di lavoro in un ambito diverso, oppure un requisito in dubbio (un po' più di
-  esperienza, una competenza da completare). Questi annunci RESTANO in elenco: sono opportunità;
-- 20-39: c'entra poco: il legame con ciò che desidera e sa fare è debole;
-- 0-19: non c'entra niente: è un altro mestiere con un titolo simile, oppure chiede competenze tecniche o anni che non ha.
-Non alzare il voto solo perché il titolo è uguale: conta cosa si fa davvero nel ruolo.
-Se ricevi gli annunci che la persona ha SALVATO e quelli che ha SCARTATO, sono le sue scelte reali e valgono più delle tue
-ipotesi: un annuncio dello stesso tipo di quelli salvati vale almeno 60, uno dello stesso tipo di quelli scartati al massimo 39.
-Le scelte sono in ordine di tempo: le ultime contano di più. Quelli a cui si è CANDIDATA o che ha AGGIUNTO DA SOLA pesano più
-di quelli solo salvati.
-LE CANDIDATURE COMANDANO SU TUTTO: un annuncio dello stesso tipo di uno a cui si è CANDIDATA o che ha AGGIUNTO DA SOLA (stesso
-ruolo, anche in un'altra azienda o in un altro settore; oppure ruolo simile nella stessa azienda) vale almeno 75. Nessun criterio
-qui sotto può abbassare quel voto: se un criterio sembra escludere un annuncio simile a una sua candidatura, è il criterio a
-essere troppo stretto.
-Se ricevi i CRITERI IMPARATI DALLE SUE SCELTE, applicali agli altri annunci: sono tendenze ricavate dalle scelte, non regole.
-Un settore o un tipo di azienda che i criteri non nominano non è escluso. Quando le scelte
-contraddicono l'intervista (lavoro desiderato, settori esclusi, livello) VALGONO LE SCELTE: l'intervista è di tempo fa, le scelte
-sono di adesso. Un settore escluso nell'intervista ma indicato tra quelli che ora sceglie non va più escluso ("x": false).
-Quando uno scarto ha un motivo ("perché: ..."), applicalo a tutti gli annunci simili per quel motivo (stesso settore, stesso
-livello, agenzia per il lavoro, stessa zona...), non solo a quell'annuncio.
-Conta anche il LIVELLO del lavoro che DESIDERA: un annuncio di un livello molto diverso (molto più semplice o molto più
-alto di quello che cerca) è un altro lavoro e vale al massimo 35, anche se contiene le stesse parole ("vendita", "clienti").
-Di ogni annuncio ricevi l'inizio, le mansioni e i requisiti ("[…]" segna un taglio). Leggi i requisiti: anni richiesti, lingue,
-titoli di studio e competenze obbligatorie che la persona non ha abbassano il voto; se c'è solo il titolo giudica con prudenza.
-"why": una frase in italiano di al massimo 14 parole, rivolta alla persona (tu), che spiega il voto in modo concreto.
-Rispondi SOLO con JSON: {"r": [{"i": <numero annuncio>, "fit": <0-100>, "x": <true|false>, "p": <true|false>, "why": "<frase>"}, ...]}
-con una voce per ogni annuncio."""
+"like" = QUANTO L'ANNUNCIO È CIÒ CHE LA PERSONA VUOLE. Qui i requisiti NON contano: conta solo se è il tipo di lavoro, di
+azienda e di contesto che cerca. Lo capisci, in ordine di importanza, da:
+1. le sue SCELTE reali (se le ricevi): annunci a cui si è CANDIDATA o che ha AGGIUNTO DA SOLA (pesano di più), annunci SALVATI,
+   annunci SCARTATI (con il motivo, se c'è: applicalo a tutti gli annunci simili per quel motivo). Sono in ordine di tempo:
+   le ultime contano di più;
+2. i CRITERI IMPARATI dalle sue scelte (se li ricevi): sono tendenze, non regole. Ciò che i criteri non nominano non è escluso;
+3. l'intervista: il lavoro che DESIDERA (non quello che ha fatto finora), i settori preferiti.
+Quando le scelte contraddicono l'intervista valgono le scelte: l'intervista è di tempo fa.
+- 80-100: dello stesso tipo degli annunci a cui si è candidata o che ha salvato, o esattamente il lavoro che desidera;
+- 60-79: vicino a ciò che sceglie;
+- 40-59: né vicino né lontano;
+- 20-39: lontano da ciò che sceglie;
+- 0-19: dello stesso tipo di quelli che scarta, o il mestiere da cui vuole uscire.
+
+Settori ESCLUSI: se l'azienda o il ruolo appartengono a un settore che ha escluso, metti "x": true (l'annuncio verrà tolto).
+Vale per tutto il settore. Un settore escluso nell'intervista in cui poi ha scelto annunci non va più escluso ("x": false).
+Settori PREFERITI: se l'azienda o il ruolo sono in un suo settore preferito, metti "p": true.
+
+"why": una frase in italiano di al massimo 14 parole, rivolta alla persona (tu), sul perché è o non è un annuncio per lei.
+"gap": solo se fit è sotto 60, il motivo concreto per cui non è adatta o cosa le manca, in italiano, massimo 14 parole,
+rivolto alla persona (es. "chiedono 5 anni di esperienza, tu ne hai 2"); altrimenti "".
+Rispondi SOLO con JSON: {"r": [{"i": <numero annuncio>, "fit": <0-100>, "like": <0-100>, "x": <true|false>, "p": <true|false>,
+"why": "<frase>", "gap": "<frase o vuoto>"}, ...]} con una voce per ogni annuncio."""
 BATCH, SNIPPET, HEAD = 10, 900, 220  # 900 caratteri per annuncio: inizio + mansioni + requisiti
 
 
@@ -157,7 +156,13 @@ def _votes(data, n):
         try:
             i = int(r["i"])
             if 0 <= i < n:
-                out.append((i, {"ai_fit": max(0, min(100, int(r["fit"]))), "ai_why": str(r.get("why") or "")[:140],
+                fit = max(0, min(100, int(r["fit"])))
+                try:  # un modello che non dà il secondo voto: vale il primo
+                    like = max(0, min(100, int(r["like"])))
+                except (KeyError, ValueError, TypeError):
+                    like = fit
+                out.append((i, {"ai_fit": fit, "ai_like": like, "ai_why": str(r.get("why") or "")[:140],
+                                "ai_gap": str(r.get("gap") or "")[:140] if fit < 60 else "",
                                 "ai_x": bool(r.get("x")), "ai_p": bool(r.get("p"))}))
         except (KeyError, ValueError, TypeError):
             continue

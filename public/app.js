@@ -307,7 +307,9 @@ function openJob(j){
   const facts = [["Dove", place(j) || "Non indicato"], ["Modalità", MODE[modeOf(j)]], ["Stipendio", asText(j.salary)], ["Lingue", asText(j.languages)],
     ["Contratto", asText(j.contract)], ["Livello", asText(j.level)], ["Pubblicato", fmtWhen(j.posted_at)], ["Fonte", j.source], ["Tipo di ruolo", S.data.families[j.role_family]]].filter(x => x[1]);
   const body = [
-    j.ai_fit != null ? h("div", {class:"verdict"}, masc("vaglio"), h("div", null, h("small", null, "Il parere di Tina"), h("p", null, j.ai_why || "Valutato sul testo dell'annuncio.")), h("div", {class:"fit"}, String(j.ai_fit))) : null,
+    j.ai_fit != null ? h("div", {class:"verdict"}, masc("vaglio"), h("div", null, h("small", null, "Il parere di Tina"), h("p", null, j.ai_why || "Valutato sul testo dell'annuncio."),
+      j.ai_like != null ? h("small", null, `Adatta a te ${j.ai_fit} su 100 · Vicino a ciò che scegli ${j.ai_like} su 100`) : null,
+      j.ai_gap ? h("p", null, "Da sapere: " + j.ai_gap) : null), h("div", {class:"fit"}, String(j.ai_fit))) : null,
     h("div", {class:"sec"}, h("h4", null, "In breve"), h("div", {class:"facts"}, facts.map(([k, v]) => h("div", {class:"fact"}, h("span", null, k), h("b", null, v))))),
     (j.reasons || []).length ? h("div", {class:"sec"}, h("h4", null, "Perché questo voto"), h("ul", {class:"reasons"}, j.reasons.map(r => h("li", {class: r.k === "ok" ? "" : r.k === "bad" ? "bad" : "warn"}, r.t)))) : null,
     (j.skills || []).length ? h("div", {class:"sec"}, h("h4", null, "Competenze citate"), h("div", {class:"tags"}, j.skills.map(s => h("span", {class:"tag"}, s)))) : null,
