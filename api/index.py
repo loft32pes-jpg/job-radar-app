@@ -162,8 +162,11 @@ def a_dati(_body, uid):
              f"utenti/{uid}/preferiti.json", f"utenti/{uid}/imparato.json"]
     with ThreadPoolExecutor(6) as ex:
         users, prof, res, st, fav, lr = ex.map(read, paths)
-    for f in ((fav or {}).get("favs") or {}).values():
+    import learn
+    for url, f in ((fav or {}).get("favs") or {}).items():
         f["state"] = cand.OLD_STATES.get(f.get("state"), f.get("state") or "interested")
+        if isinstance(f.get("job"), dict) and not f["job"].get("company"):  # aggiunto dal sito di un'azienda senza il nome
+            f["job"]["company"] = learn.company_from_url(f["job"].get("url") or url)
     if not users or uid not in users:
         raise Fail("Accesso non più valido.", 401)
     today = time.strftime("%Y-%m-%d")
@@ -178,8 +181,7 @@ def a_dati(_body, uid):
         lr = lr or {}
         summary = {"notify": prof.get("notify") or {}, "answers": prof.get("answers") or {}, "clusters": [{"name": c["name"], "on": c.get("on", True)}
                                                                      for c in prof.get("clusters", [])],
-                   "learned": {"titles": (lr.get("titles_en") or []) + (lr.get("titles_it") or []), "summary": lr.get("summary") or "",
-                               "at": lr.get("at") or ""}}
+                   "learned": learn.view(lr)}
     res = res or {}
     return {"name": users[uid].get("name", ""), "profile": summary, "run": res.get("run"), "families": res.get("families") or {},
             "jobs": res.get("jobs") or [], "state": clean_state(st), "tracker": fav or {},
@@ -258,6 +260,14 @@ def _jd(uid, key):
     return texts.get(normalize_url(key)) or texts.get(key) or ""
 
 
+def _page_text(page, n=12000):
+    """Testo di una pagina qualsiasi senza menu, piè di pagina e moduli (es. il selettore delle lingue del sito)."""
+    import re as _re
+    import sources
+    page = _re.sub(r"(?is)<(header|nav|footer|select|form|noscript)\b.*?</\1>", " ", page or "")
+    return sources.strip_html(page, n)
+
+
 def _fetch_jd(url):
     """Annuncio non letto durante la ricerca: si legge adesso dalla sua pagina (LinkedIn: versione pubblica leggera)."""
     import re as _re
@@ -268,7 +278,7 @@ def _fetch_jd(url):
             page = sources._open(f"https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{m.group(1)}", "text/html", timeout=12)
             body = _re.search(r"show-more-less-html__markup[^>]*>(.*?)</div>", page, _re.S)
             return sources.strip_html(body.group(1) if body else page, 12000)
-        return sources.strip_html(sources._open(url, "text/html", timeout=12), 12000)
+        return _page_text(sources._open(url, "text/html", timeout=12))
     except Exception:
         return ""
 
@@ -349,7 +359,8 @@ def a_citta(body, uid):
 
 
 def a_impara(body, uid):
-    """Ruolo imparato dalle scelte che la persona non vuole: si toglie e non torna più."""
+    """Ruolo, parola o azienda imparati dalle scelte che la persona non vuole: si tolgono e non tornano più."""
+    import learn
     prof = read(f"utenti/{uid}/profilo.json", None)
     if not prof:
         raise Fail("Prima fai l'intervista con Vale.")
@@ -360,10 +371,10 @@ def a_impara(body, uid):
         if t.lower() not in {x.lower() for x in off}:
             off.append(t)
         write(f"utenti/{uid}/profilo.json", prof, "Ruolo imparato tolto")
-        for k in ("titles_en", "titles_it"):
+        for k in ("titles_en", "titles_it", "words", "companies"):
             lr[k] = [x for x in lr.get(k) or [] if x.lower() != t.lower()]
         write(f"utenti/{uid}/imparato.json", lr, "Ruolo imparato tolto")
-    return {"learned": {"titles": (lr.get("titles_en") or []) + (lr.get("titles_it") or []), "summary": lr.get("summary") or ""}}
+    return {"learned": learn.view(lr)}
 
 
 def _read_ad(url):
@@ -401,8 +412,10 @@ def _read_ad(url):
                              "city": str(addr.get("addressLocality") or "")[:80] if isinstance(addr, dict) else "", "source": "Aggiunto da te"}, \
                     sources.strip_html(_html.unescape(str(d.get("description") or "")), 12000)
     t = _re.search(r'<meta[^>]+property="og:title"[^>]+content="([^"]+)"', page) or _re.search(r"<title>(.*?)</title>", page, _re.S)
-    return url, {"title": _html.unescape(t.group(1).strip())[:200] if t else "", "company": "", "city": "", "source": "Aggiunto da te"}, \
-        sources.strip_html(page, 12000)
+    site = _re.search(r'<meta[^>]+property="og:site_name"[^>]+content="([^"]+)"', page)
+    return url, {"title": _html.unescape(t.group(1).strip())[:200] if t else "",
+                 "company": _html.unescape(site.group(1).strip())[:120] if site else "", "city": "", "source": "Aggiunto da te"}, \
+        _page_text(page)
 
 
 def a_importa(body, uid):
@@ -417,6 +430,9 @@ def a_importa(body, uid):
     if not job.get("title"):
         raise Fail("In questa pagina non trovo un annuncio di lavoro.")
     job["url"] = url
+    if not job.get("company"):  # sito dell'azienda senza il nome scritto nella pagina: lo dice l'indirizzo
+        import learn
+        job["company"] = learn.company_from_url(url)
     t = _tracker(uid)
     if url not in t["favs"]:
         _save_job(t, uid, url, job, "interested")

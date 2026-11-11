@@ -576,12 +576,21 @@ function viewMe(){
     myPlaces().length ? h("div", {class:"wrap"}, myPlaces().map(p => h("button", {class:"chip", type:"button", "aria-pressed":"true", title:"Togli",
       onclick: e => saveCities(myPlaces().filter(x => x !== p).map(x => x.typed || x.name), e.target, false)}, "📍 " + (p.typed || p.name) + "  ✕"))) : h("p", {class:"hint"}, "Nessuna città: cerco solo nei paesi scelti, annunci delle ultime 24 ore."),
     myPlaces().length < 3 ? h("div", {class:"cityrow"}, cityInp, cityAdd) : null);
-  const lr = (d.profile && d.profile.learned) || {titles: []};
+  const lr = Object.assign({titles: [], companies: [], likes: [], dislikes: [], changes: [], off: []}, (d.profile && d.profile.learned) || {});
+  const offChip = (t, done) => h("button", {class:"chip", type:"button", "aria-pressed":"true", title:"Togli",
+    onclick: async e => { e.target.disabled = true; const r = await api("impara", {off: t}); if (!r.ok) return toast(r.error); d.profile.learned = r.learned; toast(done); render(); }}, t + "  ✕");
+  const lrList = (label, items) => items.length ? h("div", {class:"kv", style:"margin:8px 0"}, h("div", null, h("span", null, label), items.join(". "))) : null;
+  const lrAny = lr.titles.length || lr.companies.length || lr.likes.length;
   const learned = h("div", {class:"sec"}, h("h4", null, "Imparato dalle tue scelte"),
-    h("p", {class:"hint"}, lr.titles.length ? (lr.summary ? lr.summary + " " : "") + "Oltre ai ruoli dell'intervista cerco anche questi, ricavati dagli annunci che salvi e a cui ti candidi. Tocca ✕ per toglierne uno." :
-      "Quando salvi annunci, ti candidi o ne scarti, imparo cosa ti piace e allargo la ricerca a quei ruoli. Gli annunci scartati abbassano il voto di quelli simili."),
-    lr.titles.length ? h("div", {class:"wrap"}, lr.titles.map(t => h("button", {class:"chip", type:"button", "aria-pressed":"true", title:"Togli",
-      onclick: async e => { e.target.disabled = true; const r = await api("impara", {off: t}); if (!r.ok) return toast(r.error); d.profile.learned = r.learned; toast("Tolto: non lo cerco più"); render(); }}, t + "  ✕"))) : null);
+    h("p", {class:"hint"}, lrAny ? (lr.summary ? lr.summary + " " : "") + "Gli annunci che salvi, le candidature, quelli che aggiungi tu e quelli che scarti contano più dell'intervista: se nel tempo cambi idea, cambio anch'io." :
+      "Quando salvi annunci, ti candidi, ne aggiungi di trovati altrove o ne scarti, imparo cosa ti piace e adatto la ricerca. Le tue scelte contano più dell'intervista."),
+    lrList("Cosa è cambiato rispetto all'intervista", lr.changes),
+    lrList("Cosa scegli", lr.likes),
+    lrList("Cosa scarti", lr.dislikes),
+    lr.titles.length ? [h("p", {class:"hint"}, "Ruoli che cerco in più. Tocca ✕ per toglierne uno."),
+      h("div", {class:"wrap"}, lr.titles.map(t => offChip(t, "Tolto: non lo cerco più")))] : null,
+    lr.companies.length ? [h("p", {class:"hint", style:"margin-top:10px"}, "Aziende che seguo per te: nelle tue città leggo tutti i loro annunci dell'ultimo mese, anche con titoli diversi dai tuoi ruoli."),
+      h("div", {class:"wrap"}, lr.companies.map(t => offChip(t, "Tolta: non la seguo più")))] : null);
   const nt = (d.profile && d.profile.notify) || {};
   const ntBox = h("div", {class:"sec"}, h("h4", null, "Avvisi sul telefono"),
     nt.topic ? [

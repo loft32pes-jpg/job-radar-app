@@ -205,7 +205,13 @@ def search_plan(profile: dict) -> dict:
         for t in c["titles_it"][:n_it] + c["titles_en"][:n_en]:
             if t.lower() not in {x.lower() for x in local}:
                 local.append(t)
+    lr = profile.get("learned") or {}
+    off = {str(x).lower() for x in profile.get("learned_off") or []}
     return {"groups": groups[:10], "native": {k: v for k, v in native.items() if v},
+            # aziende che segue: nelle sue città si cercano per nome, ultimi 30 giorni (gli annunci restano aperti a lungo)
+            "companies": [c for c in lr.get("companies") or [] if c.lower() not in off][:10],
+            # ricerche nuove (ruoli appena imparati): la prima volta guardano l'ultimo mese, non solo l'ultima settimana
+            "deep": {str(t).lower() for t in profile.get("deep_terms") or []},
             "core": _or_query(core, 9),
             "big": [_or_query(c["titles_en"]) for c in near] + [k for k in profile.get("search_keywords") or []][:2],
             "en": first[:8], "it": [t for c in on for t in c["titles_it"][:1]][:4], "eures": first[:6], "local": local[:40]}

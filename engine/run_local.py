@@ -189,7 +189,8 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
     log(f"  LinkedIn: {len(jobs)} annunci grezzi" + ("" if meta["ok"] else f" (non raggiunta: {meta['reason']})"))
 
     log("Filtri e punteggio ...")
-    survivors = []
+    survivors, retry = [], {}
+    read_texts = read_json(DATA / "testi_letti.json", {})
     discarded, added, batch_keys, in_window = {}, 0, set(), 0
     for j in raw:
         if not in_scope(j):
@@ -197,12 +198,17 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
         key = normalize_url(j["url"])
         if key in dropped:
             continue
-        if key in known and not rules.classify(known[key]["title"]):
+        if key in known and not rules.classify(known[key]["title"], known[key].get("near") or j.get("near"), known[key]["company"]):
             continue  # già in archivio ma fuori dai ruoli della persona: non torna in elenco
         if key in known:  # già in archivio e ancora nella finestra: resta nell'elenco, senza rivalutarlo
             if known[key].get("last_seen") != run_at:
                 known[key]["last_seen"] = run_at
                 in_window += 1
+            if j.get("near") and not known[key].get("near"):
+                known[key]["near"] = j["near"]  # già trovato cercando nel paese: è anche in una sua città
+            # rimasto senza voto dell'AI in una ricerca passata (quota finita, tempo scaduto): si riprova adesso
+            if rules.PROFILE and rules.JUDGE_ON and "ai_fit" not in known[key] and key not in retry:
+                retry[key] = (known[key], j.get("text") or read_texts.get(key, ""))
             continue
         if key in batch_keys:
             continue
@@ -256,6 +262,11 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
         }
         if j_near := ev.get("near"):
             job["near"] = j_near
+            posted = sources.parse_dt(ev["posted_at"])
+            if not posted or posted < local_since:
+                # trovato con una ricerca sull'ultimo mese (azienda seguita, ruolo nuovo): le ricerche settimanali non lo
+                # ritrovano, quindi resta in elenco qualche giorno anche senza essere rivisto (vedi ci_run)
+                job["old_find"] = True
         sig_seen[sig] = job
         if ev.get("lat") is not None and (not pos or pos[2] != "city"):  # la fonte dà già le coordinate del paese
             pos = (ev["lat"], ev["lon"], "city", "")
@@ -279,11 +290,30 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
         new_jobs.append(job)
         added += 1
 
+    def voted(j):
+        """Applica il voto dell'AI all'annuncio. Ritorna False se deve uscire dall'elenco."""
+        fit = j["ai_fit"]
+        excluded = bool(j.pop("ai_x", False))            # settore escluso dall'utente: fuori, qualunque sia il voto
+        liked = bool(j.pop("ai_p", False)) or j.get("preferred")
+        j["score_rules"] = j["score"]
+        j["score"] = min(100, round(0.25 * j["score"] + 0.75 * fit) + (8 if liked else 0))
+        if liked and not any(r["t"] == "Settore che preferisci" for r in j["reasons"]):
+            j["reasons"].insert(1, {"t": "Settore che preferisci", "k": "ok"})
+            j["preferred"] = True
+        j["reasons"].insert(1, {"t": j.get("ai_why") or "Valutato dall'AI", "k": "ok" if fit >= 60 else "warn"})
+        return fit >= 40 and not excluded                 # sotto 40 c'entra poco o niente
+
+    votes = {}
+    if rules.PROFILE and not new_jobs and retry:  # nessun annuncio nuovo: il giudice lavora solo su quelli rimasti senza voto
+        for key, (j, text) in retry.items():
+            live.submit(key, {"title": j["title"], "company": j["company"], "country": j["country"]}, text, prio(j) + 0.5)
     if rules.PROFILE and new_jobs:
         # giudizio AI: legge titolo e inizio dell'annuncio e dice quanto è adatto alla persona. Chi non c'entra esce dall'elenco.
         ranked = sorted(new_jobs, key=lambda j: (prio(j), -j["score"]))
         for j in ranked:
             j["_prio"] = prio(j)
+        for key, (j, text) in retry.items():  # dopo i nuovi: con la stessa priorità di città
+            live.submit(key, {"title": j["title"], "company": j["company"], "country": j["country"]}, text, prio(j) + 0.5)
         votes = live.close(120)  # voti già dati durante la ricerca (finisce la coda rimasta)
         for j in ranked:
             key = normalize_url(j["url"])
@@ -301,15 +331,7 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
             if fit is None:
                 keep = j["role_family"] != rules.OTHER and j["score"] >= rules.MIN_SCORE  # non valutato: resta solo se regge a regole
             else:
-                excluded = bool(j.pop("ai_x", False))            # settore escluso dall'utente: fuori, qualunque sia il voto
-                liked = bool(j.pop("ai_p", False)) or j.get("preferred")
-                keep = fit >= 40 and not excluded                 # sotto 40 c'entra poco o niente
-                j["score_rules"] = j["score"]
-                j["score"] = min(100, round(0.25 * j["score"] + 0.75 * fit) + (8 if liked else 0))
-                if liked and not any(r["t"] == "Settore che preferisci" for r in j["reasons"]):
-                    j["reasons"].insert(1, {"t": "Settore che preferisci", "k": "ok"})
-                    j["preferred"] = True
-                j["reasons"].insert(1, {"t": j.get("ai_why") or "Valutato dall'AI", "k": "ok" if fit >= 60 else "warn"})
+                keep = voted(j)
             if not keep:
                 key = normalize_url(j["url"])
                 if fit is not None:
@@ -322,6 +344,23 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
                 out += 1
         if out:
             discarded["non adatto secondo il giudizio AI"] = out
+    if rules.PROFILE and retry:
+        votes = votes if new_jobs else live.close(120)
+        again = 0
+        for key, (j, _text) in retry.items():
+            if key not in votes:
+                continue
+            again += 1
+            j.update(votes[key])
+            if not voted(j):  # bocciato: esce dall'archivio e non si rilegge
+                for data in files.values():
+                    if j in data["jobs"]:
+                        data["jobs"].remove(j)
+                files[today].setdefault("dropped", []).append(key)
+                known.pop(key, None)
+                if j.get("last_seen") == run_at:
+                    in_window -= 1
+        log(f"Giudizio AI: {again} annunci rimasti senza voto nelle ricerche passate valutati ora (su {len(retry)})")
     consulted = [m["name"] for m in metas if m["ok"]]
     def plain(reason):  # gli errori tecnici di rete diventano una frase leggibile
         return "non raggiungibile in questo momento (rete)" if re.search(r"urlopen|getaddrinfo|timed out|Errno", reason or "") else reason

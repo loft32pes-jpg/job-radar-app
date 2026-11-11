@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import sys
 import time
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -98,7 +98,13 @@ def main():
     if learned != prof_now["learned"]:
         write(user / "imparato.json", learned)
     prof_now["learned"] = learned
-    write(WORK / "profilo" / "ricerca.json", learn.apply(prof_now))
+    # ruoli mai cercati finora nella città principale: la prima volta si guarda l'ultimo mese (pochi per ricerca, per il tempo)
+    import searchprofile
+    applied = learn.apply(prof_now)
+    deep_done = dict(learned.get("deep") or {})
+    deep_new = [t for t in searchprofile.search_plan(applied)["local"] if t.lower() not in deep_done][:6]
+    applied["deep_terms"] = deep_new
+    write(WORK / "profilo" / "ricerca.json", applied)
     # i modelli AI scelti stamattina da modelli.py (i più nuovi che rispondono davvero) al posto di quelli scritti a mano
     cfg = json.loads(os.environ["JR_CONFIG"])
     chosen = read(REPO / "dati" / "modelli.json", {}).get("fornitori", {})
@@ -135,13 +141,25 @@ def main():
     for old in arch.glob("*.json"):
         old.unlink()
     mark.write_text(version, encoding="utf-8")
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+
+    def still_new(j):
+        """Trovato da poco con una ricerca sull'ultimo mese: le ricerche settimanali non lo rivedono, resta in elenco 7 giorni."""
+        try:
+            return bool(j.get("old_find")) and datetime.fromisoformat(j["first_seen"]) > week_ago
+        except (KeyError, ValueError, TypeError):
+            return False
     for f in sorted((WORK / "data" / "archive").glob("????-??-??.json"), reverse=True):
         if (today - date.fromisoformat(f.stem)).days > KEEP_DAYS:
             continue
         shutil.copy(f, arch / f.name)
         for j in read(f, {}).get("jobs", []):
-            if j.get("last_seen") == run["at"]:
+            if j.get("last_seen") == run["at"] or still_new(j):
                 jobs.append({k: j[k] for k in JOB_FIELDS if j.get(k) not in (None, "", [], {})})
+    if deep_new:  # la ricerca è arrivata in fondo: questi ruoli hanno avuto la loro ricerca sull'ultimo mese
+        deep_done.update({t.lower(): today.isoformat() for t in deep_new})
+        learned = dict(learned, deep=deep_done)
+        write(user / "imparato.json", learned)
     # annunci uguali a quelli che ha già scartato (stesso titolo e azienda, anche ripubblicati con un altro link): fuori
     gone = {(str((f.get("job") or {}).get("title", "")).lower(), str((f.get("job") or {}).get("company", "")).lower())
             for f in (read(user / "preferiti.json", {}).get("favs") or {}).values() if f.get("state") == "discarded"}

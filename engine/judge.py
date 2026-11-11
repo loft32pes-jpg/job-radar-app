@@ -37,6 +37,11 @@ Poi dai "fit" da 0 a 100, usando tutta la scala:
 Non alzare il voto solo perché il titolo è uguale: conta cosa si fa davvero nel ruolo.
 Se ricevi gli annunci che la persona ha SALVATO e quelli che ha SCARTATO, sono le sue scelte reali e valgono più delle tue
 ipotesi: un annuncio dello stesso tipo di quelli salvati vale almeno 60, uno dello stesso tipo di quelli scartati al massimo 39.
+Le scelte sono in ordine di tempo: le ultime contano di più. Quelli a cui si è CANDIDATA o che ha AGGIUNTO DA SOLA pesano più
+di quelli solo salvati.
+Se ricevi i CRITERI IMPARATI DALLE SUE SCELTE, applicali: descrivono cosa sceglie e cosa scarta davvero. Quando le scelte
+contraddicono l'intervista (lavoro desiderato, settori esclusi, livello) VALGONO LE SCELTE: l'intervista è di tempo fa, le scelte
+sono di adesso. Un settore escluso nell'intervista ma indicato tra quelli che ora sceglie non va più escluso ("x": false).
 Quando uno scarto ha un motivo ("perché: ..."), applicalo a tutti gli annunci simili per quel motivo (stesso settore, stesso
 livello, agenzia per il lavoro, stessa zona...), non solo a quell'annuncio.
 Conta anche il LIVELLO del lavoro che DESIDERA: un annuncio di un livello molto diverso (molto più semplice o molto più
@@ -90,8 +95,20 @@ def _choices(profile):
     """Le scelte reali della persona nella bacheca: il giudice le usa come esempi."""
     lr = profile.get("learned") or {}
     out = ""
+    c = lr.get("criteria") or {}
+    if c.get("likes") or c.get("dislikes") or lr.get("unavoid"):
+        out += "\nCRITERI IMPARATI DALLE SUE SCELTE (valgono più dell'intervista):"
+        if c.get("likes"):
+            out += "\n- sceglie: " + "; ".join(c["likes"][:5])
+        if c.get("dislikes"):
+            out += "\n- scarta: " + "; ".join(c["dislikes"][:5])
+        if lr.get("unavoid"):
+            out += "\n- nell'intervista aveva escluso «" + ", ".join(lr["unavoid"][:6]) + "» ma poi ha scelto annunci di quel tipo: non escluderli più"
+    if lr.get("companies"):
+        out += "\nAZIENDE CHE SEGUE (ci si è candidata o ne ha salvato annunci; conta comunque il ruolo): " + ", ".join(lr["companies"][:12])
     if lr.get("pos"):
-        out += "\nANNUNCI CHE HA SALVATO O A CUI SI È CANDIDATA (le piacciono): " + "; ".join(f"{x[0]} ({x[1]})" for x in lr["pos"][-15:])
+        out += "\nANNUNCI CHE HA SALVATO O A CUI SI È CANDIDATA (le piacciono, dal più vecchio al più recente): " + "; ".join(
+            f"{x[0]} ({x[1]})" + (f" [{x[2]}]" if len(x) > 2 and x[2] else "") for x in lr["pos"][-15:])
     if lr.get("neg"):
         out += "\nANNUNCI CHE HA SCARTATO: " + "; ".join(
             f"{x[0]} ({x[1]})" + (f" perché: {x[2]}" if len(x) > 2 and x[2] else "") for x in lr["neg"][-20:])
@@ -220,6 +237,12 @@ class Live:
                 with self.tally:
                     self.busy -= 1
                 return
+            if not data:  # il modello non ha risposto (tetto al minuto, rete): il gruppo torna in coda intero, la colpa non è degli annunci
+                for item in batch:
+                    self.q.put((0, next(self.n), item))
+                with self.tally:
+                    self.busy -= 1
+                continue
             voted = set()
             for i, vote in _votes(data, len(batch)):
                 self.results[batch[i][0]] = vote

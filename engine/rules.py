@@ -174,6 +174,21 @@ SKILL_LIST = []                                 # [(etichetta, regex)] competenz
 LOCAL_TITLES = None                             # titoli nelle lingue locali: servono per gli annunci non letti
 NEVER = re.compile(r"(?!x)x")
 PREFER = NEVER                                  # parole dei settori preferiti dall'utente: danno punti in più
+NEAR_WORDS = NEVER                              # parole di mestiere che nelle sue città bastano per far leggere l'annuncio al giudice
+FOLLOW = NEVER                                  # aziende che segue (ci si è candidata o ne ha salvato annunci)
+AVOID_TEXT = None                               # parole da evitare contate nel testo (None = regole storiche)
+# parole che in un titolo dicono il livello o il tipo di figura, non il mestiere
+HEADS = {"manager", "specialist", "analyst", "coordinator", "associate", "executive", "representative", "lead", "officer",
+         "consultant", "advisor", "partner", "director", "head", "junior", "senior", "jr", "sr", "mid", "intern", "trainee",
+         "graduate", "i", "ii", "iii", "responsabile", "specialista", "analista", "coordinatore", "coordinatrice", "associato",
+         "consulente", "addetto", "addetta", "referente", "impiegato", "impiegata"}
+TITLE_STOPS = {"of", "and", "the", "for", "in", "to", "di", "del", "della", "dei", "delle", "e", "ed", "per", "a", "al", "alla", "con"}
+# parole troppo larghe per bastare da sole (in coppia vanno bene: "business development", "key account")
+BROAD = {"sales", "business", "project", "account", "product", "commercial", "customer", "operations", "marketing", "program",
+         "process", "market", "digital", "technical", "service", "services", "client", "data", "it", "key", "global",
+         "international", "regional", "italy", "italia", "vendite", "commerciale", "progetto", "programma", "prodotto", "clienti",
+         "cliente", "operazioni", "processi", "mercato", "engineer", "ingegnere", "team", "new", "area", "general", "support",
+         "management", "development", "sviluppo", "gestione", "solutions", "solution", "group", "emea", "europe", "owner"}
 LANG_CODES = [("de", r"german|deutsch|tedesco"), ("fr", r"french|fran[cç]ais|francese"), ("es", r"spanish|espa[nñ]ol|castellano|spagnolo"),
               ("nl", r"dutch|nederlands|olandese"), ("pt", r"portuguese|portugu[eê]s|portoghese"), ("pl", r"polish|polski|polacco"),
               ("sv", r"swedish|svenska|svedese"), ("da", r"danish|dansk|danese"), ("no", r"norwegian|norsk|norvegese"),
@@ -191,9 +206,36 @@ def _words_rx(words):
     return r"(?<!\w)(?:" + "|".join(parts) + r")(?!\w)" if parts else None
 
 
+def title_runs(title):
+    """Le parole di mestiere di un titolo, a gruppi di parole vicine: 'Italy Home Category & Business Development Specialist'
+    -> [['italy', 'home', 'category'], ['business', 'development']]. Livelli e figure (manager, specialist...) fanno da confine."""
+    runs, cur = [], []
+    for tok in re.findall(r"[a-zà-ÿ0-9][a-zà-ÿ0-9\-]*|[^\sa-zà-ÿ0-9]", str(title or "").lower()):
+        if not re.match(r"[a-zà-ÿ0-9]", tok) or tok in HEADS or tok in TITLE_STOPS:
+            if cur:
+                runs.append(cur)
+            cur = []
+        else:
+            cur.append(tok)
+    if cur:
+        runs.append(cur)
+    return runs
+
+
+def title_pairs(title):
+    """Coppie di parole vicine: riconoscono lo stesso mestiere scritto con un'altra figura ('Business Development Specialist')."""
+    return {" ".join(r[i:i + 2]) for r in title_runs(title) for i in range(len(r) - 1)}
+
+
+def title_singles(title):
+    """Mestieri di una parola sola ('Innovation Analyst' -> innovation), escluse le parole troppo larghe."""
+    return {r[0] for r in title_runs(title) if len(r) == 1 and len(r[0]) >= 3 and r[0] not in BROAD and not r[0].isdigit()}
+
+
 def configure(profile):
     """Attiva un profilo di ricerca: da qui in poi classify() ed evaluate() ragionano su quella persona."""
     global PROFILE, SEARCH, FAMILIES, FAMILY_LABEL, TITLE_EXCLUDE, SKILL_LIST, MOBILITY_STRONG, MOBILITY_WEAK, LOCAL_TITLES, PREFER
+    global NEAR_WORDS, FOLLOW, AVOID_TEXT
     if not profile or not profile.get("clusters"):
         return False
     import details
@@ -205,27 +247,47 @@ def configure(profile):
         USER["years"] = max(0, int(float(ans.get("years", 2))))
     except (TypeError, ValueError):
         USER["years"] = 2
-    fams, labels, local = [], {}, []
+    # quello che la ricerca ha imparato dalle scelte della persona (learn.py): vale più dell'intervista
+    lr = profile.get("learned") or {}
+    off = {str(x).lower() for x in profile.get("learned_off") or []}
+    fams, pairs, labels, local, singles = [], [], {}, [], set()
     for c in profile["clusters"]:
         if not c.get("on", True):
             continue
         loc = [t for ts in (c.get("titles_local") or {}).values() for t in ts]
         rx = _words_rx(c["titles_en"] + c["titles_it"] + loc)
         if rx:
-            fams.append((c["id"], searchprofile.TIER_POINTS.get(c.get("tier"), 33), rx))
+            pts = searchprofile.TIER_POINTS.get(c.get("tier"), 33)
+            fams.append((c["id"], pts, rx))
             labels[c["id"]] = c["name"]
             local += loc
+            # lo stesso mestiere con un'altra figura o dentro un titolo più lungo: "Business Development Manager" nel profilo
+            # riconosce anche "Home Category & Business Development Specialist" (qualche punto in meno del titolo esatto)
+            two = set()
+            for t in c["titles_en"] + c["titles_it"]:
+                two |= title_pairs(t)
+                singles |= title_singles(t)
+            if two:
+                pairs.append((c["id"], pts - 5, _words_rx(two)))
+    fams += pairs
     wide = _words_rx(profile.get("title_words") or [])
     if wide:  # titoli non previsti che contengono una parola del mestiere: entrano come candidati, decide il giudice AI
         fams.append((OTHER, 24, wide))
-        labels[OTHER] = "Altri ruoli possibili"
+    labels[OTHER] = "Altri ruoli possibili"
     FAMILIES, FAMILY_LABEL = fams, labels
+    # nelle sue città basta una parola di mestiere (dal profilo o dai titoli che ha scelto) perché l'annuncio arrivi al giudice AI;
+    # lo stesso per gli annunci delle aziende che segue. Nel resto d'Europa no: sarebbero troppi annunci per la quota AI gratuita
+    near = _words_rx({w for w in singles | {str(x).lower() for x in lr.get("words") or []} if w not in off and w not in BROAD})
+    NEAR_WORDS = re.compile(near, re.I) if near else NEVER
+    follow = _words_rx([c for c in lr.get("companies") or [] if c.lower() not in off])
+    FOLLOW = re.compile(follow, re.I) if follow else NEVER
     LOCAL_TITLES = re.compile(_words_rx(local), re.I) if local else None
     # titoli da scartare: troppo senior per chi ha pochi anni, stage (se non cercati), lingue non parlate, altri mestieri dal profilo
-    ex = []
-    if USER["years"] < 6:
+    # (un filtro che avrebbe tolto annunci che lei ha scelto si spegne: lo decide learn.py, vedi "gates_off")
+    ex, gates_off = [], set(lr.get("gates_off") or [])
+    if USER["years"] < 6 and "senior" not in gates_off:
         ex.append(r"\b(director|directeur|direttore|directora?|vp|vice president|head of|chief|principal)\b")
-    if "stage" not in (ans.get("level") or "").lower() and "intern" not in (ans.get("level") or "").lower():
+    if "stage" not in (ans.get("level") or "").lower() and "intern" not in (ans.get("level") or "").lower() and "stage" not in gates_off:
         ex.append(r"\b(intern|internship|working student|werkstudent|trainee programme|apprentice|apprenti\w*|alternance|stagiaire|"
                   r"praktikum|praktikant\w*|stage|tirocinio|becari[oa]|pr[áa]cticas|est[áa]gio)\b")
     spoken = [w for code, w in SPEAKING.items() if code not in USER["langs"]]
@@ -233,14 +295,22 @@ def configure(profile):
         ex.append(r"\b(" + "|".join(spoken) + r"|nordic|turkish|arabic|hebrew|russian)[- ]speak\w*")
     if "de" not in USER["langs"]:
         ex.append(r"\(\s*[mwfdxi*]\s*[/|]\s*[mwfdxi*]")
-    own = _words_rx(profile.get("exclude_titles") or [])
+    unex = {str(x).lower() for x in lr.get("unexclude") or []}
+    own = _words_rx([t for t in profile.get("exclude_titles") or [] if t.lower() not in unex])
     if own:
         ex.append(own)
     TITLE_EXCLUDE = re.compile("|".join(ex), re.I) if ex else NEVER
     SKILL_LIST = [(w, re.compile(_words_rx([w]), re.I)) for w in profile.get("skills") or []]
-    avoid = _words_rx(profile.get("avoid_words") or [])
+    unav = {str(x).lower() for x in lr.get("unavoid") or []}
+    words = [w for w in profile.get("avoid_words") or [] if w.lower() not in unav]
+    avoid = _words_rx(words)
     MOBILITY_STRONG = re.compile(avoid, re.I) if avoid else NEVER
     MOBILITY_WEAK = NEVER
+    # nel testo si contano solo le parole che non hanno altri significati: "auto" e "car" stanno in mezzo agli annunci
+    # ("auto aziendale", "company car") e toglierebbero annunci che con quel settore non c'entrano
+    said = set(re.findall(r"[\wà-ÿ]+", str(ans.get("avoid") or "").lower()))
+    in_text = _words_rx([w for w in words if " " in w.strip() or len(w.strip()) >= 6 or w.strip().lower() in said])
+    AVOID_TEXT = re.compile(in_text, re.I) if in_text else NEVER
     pref = _words_rx(profile.get("prefer_words") or [])
     PREFER = re.compile(pref, re.I) if pref else NEVER
     details.set_extra_skills(profile.get("skills"))
@@ -254,14 +324,21 @@ def _lang_code(word: str):
     return next((code for code, rx in LANG_CODES if re.fullmatch(rx, word, re.I)), None)
 
 
-def classify(title: str):
-    """Ritorna (famiglia, punti) oppure None se il titolo non è un ruolo target."""
+def classify(title: str, near=None, company: str = ""):
+    """Ritorna (famiglia, punti) oppure None se il titolo non è un ruolo target.
+    near: l'annuncio è in una delle città della persona (lì il filtro è più largo e decide il giudice AI)."""
     if TITLE_EXCLUDE.search(title):
         return None
     for fam, pts, rx in FAMILIES:
         if re.search(rx, title, re.I):
             return fam, pts
+    if near and PROFILE is not None and (NEAR_WORDS.search(title) or (company and FOLLOW.search(company))):
+        return OTHER, 24
     return None
+
+
+def followed(company: str) -> bool:
+    return bool(company and PROFILE is not None and FOLLOW.search(company))
 
 
 def infer_country(location: str):
@@ -359,7 +436,7 @@ def years_required(text: str):
 def evaluate(job: dict):
     """Applica filtri e scoring. Ritorna il dizionario arricchito oppure (None, motivo_scarto)."""
     title, company, text = job["title"], job["company"], job.get("text", "")
-    cls = classify(title)
+    cls = classify(title, job.get("near"), company)
     if not cls:
         return None, "titolo non target"
     family, role_pts = cls
@@ -386,10 +463,12 @@ def evaluate(job: dict):
 
     blob = f"{title} {company} {text}"
     strong_head = MOBILITY_STRONG.search(f"{title} {company}")
-    strong_n = len(MOBILITY_STRONG.findall(text))
-    if strong_head or strong_n >= 2:
+    strong_n = len((AVOID_TEXT or MOBILITY_STRONG).findall(text))
+    # nel titolo o nel nome dell'azienda: fuori. Citato nel testo: fuori solo senza giudice AI, che altrimenti legge l'annuncio
+    # e capisce se è davvero quel settore o se è solo nominato (un elenco di clienti, un benefit)
+    if strong_head or (strong_n >= 2 and not (generic and JUDGE_ON)):
         return None, "settore o ruolo da evitare" if generic else "settore mobility"
-    mob_pts = 5 if strong_n == 1 else (9 if MOBILITY_WEAK.search(blob) else 15)
+    mob_pts = 0 if strong_n >= 2 else 5 if strong_n == 1 else (9 if MOBILITY_WEAK.search(blob) else 15)
 
     yrs = years_required(text)
     if yrs is not None and yrs >= max(8, years_me + 6):
@@ -447,6 +526,8 @@ def evaluate(job: dict):
             reasons.append({"t": "Poche tue competenze citate nell'annuncio", "k": "warn"})
         if preferred:
             reasons.append({"t": "Settore che preferisci", "k": "ok"})
+        if job.get("near") and followed(company):
+            reasons.append({"t": "Azienda che segui", "k": "ok"})
         if MOBILITY_STRONG is not NEVER and mob_pts != 15:
             reasons.append({"t": "Cita un settore che hai escluso", "k": "warn"})
     else:

@@ -108,9 +108,9 @@ class Pacer:
         return None
 
 
-def _priority(title: str) -> int:
+def _priority(title: str, near=None, company: str = "") -> int:
     """Più alto = letto prima: ruoli più vicini al profilo, livello junior, niente senior."""
-    cls = rules.classify(title)
+    cls = rules.classify(title, near, company)
     if not cls:
         return -1
     p = cls[1]
@@ -122,6 +122,7 @@ def _priority(title: str) -> int:
 
 
 LOCAL_MILES = 25  # raggio della ricerca per città (LinkedIn ragiona in miglia: circa 40 km)
+MONTH = 30 * 86400  # aziende seguite e ricerche nuove: ultimo mese
 
 
 def fetch_linkedin(cfg, since, log=None, known_ids=(), on_read=None, local_since=None, cached=None):
@@ -164,9 +165,16 @@ def fetch_linkedin(cfg, since, log=None, known_ids=(), on_read=None, local_since
         lang = lang_of.get(cname)
         terms = [t for t in plan.get("local") or [] if lang == "it" or t.lower() in en_titles]
         terms = terms[:40 if n_place == 0 else 16] or [plan["core"]] + plan["big"]
+        where = f"{p['name']}, {cname}".strip(", ")
+        # le aziende che segue: tutti i loro annunci aperti nella città, anche con titoli non previsti (li legge il giudice AI)
+        for comp in (plan or {}).get("companies") or []:
+            active.append((cname, f'"{comp}"', set(), {"location": where, "distance": LOCAL_MILES, "secs": max(local_secs, MONTH),
+                                                       "near": p["name"], "company": comp.lower()}))
+        deep = (plan or {}).get("deep") or set()
         for q in terms:
-            active.append((cname, q, set(), {"location": f"{p['name']}, {cname}".strip(", "), "distance": LOCAL_MILES,
-                                             "secs": local_secs, "near": p["name"]}))
+            old = n_place == 0 and q.lower() in deep  # ruolo cercato per la prima volta: si guarda anche l'ultimo mese
+            active.append((cname, q, set(), {"location": where, "distance": LOCAL_MILES,
+                                             "secs": max(local_secs, MONTH) if old else local_secs, "near": p["name"]}))
     for name, lang, big in COUNTRIES:
         if wanted and name not in wanted:
             continue
@@ -200,7 +208,9 @@ def fetch_linkedin(cfg, since, log=None, known_ids=(), on_read=None, local_since
             good = _collect(cards, name, found, per_country, loc.get("near"))
             # si sfoglia finché escono annunci dei ruoli della persona. Nelle sue città ogni ricerca va fino in fondo: le ricerche
             # si sovrappongono ("Account Manager" e "Key Account Manager"), contare solo gli annunci mai visti la fermerebbe presto
-            mine = sum(1 for c in cards if c[0] in fresh and _priority(c[1]) >= 0)
+            mine = sum(1 for c in cards if c[0] in fresh and _priority(c[1], loc.get("near"), c[2]) >= 0)
+            if loc.get("company"):  # ricerca per azienda: si sfoglia finché escono annunci di quell'azienda
+                mine = good = sum(1 for c in cards if c[0] in fresh and loc["company"] in c[2].lower())
             if len(cards) >= 7 and fresh and (good or (loc.get("near") and mine)):
                 nxt.append((good + (1000 if loc.get("near") else 0), name, q, seen, loc))
         if cut or pacer.dead:
@@ -288,7 +298,7 @@ def _collect(cards, country, found, per_country, near=None):
             if near and not found[jid].get("near"):
                 found[jid]["near"] = near  # già trovato con la ricerca per paese: si segna che è anche vicino casa
             continue
-        prio = _priority(title)
+        prio = _priority(title, near, company)
         if prio < 0:
             continue
         # LinkedIn scrive spesso solo la città o l'area ("Greater Bilbao Metropolitan Area"): il paese è quello cercato
