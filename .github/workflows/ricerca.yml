@@ -141,4 +141,12 @@ jobs:
             echo "{\"running\":false,\"ok\":false,\"error\":\"La ricerca si è interrotta. Riprova tra qualche minuto.\"}" > "utenti/${{ matrix.utente }}/stato.json"
           fi
           git add -A && git commit -q -m "Risultati ricerca" || true
-          for i in 1 2 3 4 5 6; do git pull -q --rebase && git push -q && break || sleep 5; done
+          # se nel frattempo il ramo è cambiato sugli stessi file vince il risultato di questa ricerca; se non si riesce a salvare
+          # il passo fallisce (prima risultava riuscito anche senza aver salvato niente)
+          salvato=""
+          for i in 1 2 3 4 5 6; do
+            if git pull -q --rebase -X theirs && git push -q; then salvato=1; break; fi
+            git rebase --abort 2>/dev/null || true
+            sleep 5
+          done
+          [ -n "$salvato" ] || { echo "Risultati non salvati"; exit 1; }
