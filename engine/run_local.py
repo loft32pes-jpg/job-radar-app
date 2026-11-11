@@ -290,8 +290,16 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
         new_jobs.append(job)
         added += 1
 
+    import learn
+    applied_titles = {learn.clean_title(x[0]).lower() for x in ((rules.PROFILE or {}).get("learned") or {}).get("pos") or []
+                      if len(x) > 2 and x[2]}
+
     def voted(j):
         """Applica il voto dell'AI all'annuncio. Ritorna False se deve uscire dall'elenco."""
+        # stesso ruolo di un annuncio a cui si è candidata o che ha aggiunto lei: il giudice non può dargli meno di 75
+        if learn.clean_title(j["title"]).lower() in applied_titles and j["ai_fit"] < 75:
+            j["ai_fit"] = 75
+            j["ai_why"] = "Stesso ruolo di un annuncio a cui ti sei candidata."
         fit = j["ai_fit"]
         excluded = bool(j.pop("ai_x", False))            # settore escluso dall'utente: fuori, qualunque sia il voto
         liked = bool(j.pop("ai_p", False)) or j.get("preferred")

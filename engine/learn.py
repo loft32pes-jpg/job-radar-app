@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-VERSION = "v3"  # cambia quando cambia il modo di imparare: alla ricerca successiva si ricalcola tutto
+VERSION = "v4"  # cambia quando cambia il modo di imparare: alla ricerca successiva si ricalcola tutto
 LIKED = {"interested", "applied", "replied", "cv_requested", "interview", "offer", "closed", "saved"}
 STRONG = {"applied", "replied", "cv_requested", "interview", "offer"}  # si è candidata: è la scelta che pesa di più
 STATE_IT = {"interested": "SALVATO", "saved": "SALVATO", "closed": "SALVATO", "discarded": "SCARTATO"}
@@ -35,7 +35,9 @@ Ricava:
    livelli inventati. In inglese e in italiano (come li scrivono le aziende italiane);
 2. i criteri che il giudice degli annunci deve applicare d'ora in poi: cosa accomuna gli annunci scelti ("likes") e cosa
    accomuna quelli scartati ("dislikes"). Frasi brevi e concrete: tipo di ruolo, settore, tipo di azienda, livello, zona,
-   contratto. Solo ciò che le scelte mostrano davvero, niente ipotesi;
+   contratto. Solo ciò che le scelte mostrano davvero, niente ipotesi. Ogni "like" deve essere vero per TUTTE le candidature
+   e gli annunci aggiunti da lei: se si è candidata in settori diversi (es. software e largo consumo) non scrivere un settore
+   solo, scrivi cosa hanno in comune i ruoli. Un "dislike" non deve mai descrivere un annuncio a cui si è candidata;
 3. i punti in cui le scelte contraddicono l'intervista o le scelte più vecchie ("changes"): es. aveva escluso un settore e
    poi si è candidata lì; cercava un ruolo e scarta sempre quel ruolo. Solo contraddizioni vere, che si vedono in almeno due
    scelte o in una candidatura: un settore diverso da quello escluso non è una contraddizione. Nel dubbio, lista vuota.

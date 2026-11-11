@@ -39,7 +39,12 @@ Se ricevi gli annunci che la persona ha SALVATO e quelli che ha SCARTATO, sono l
 ipotesi: un annuncio dello stesso tipo di quelli salvati vale almeno 60, uno dello stesso tipo di quelli scartati al massimo 39.
 Le scelte sono in ordine di tempo: le ultime contano di più. Quelli a cui si è CANDIDATA o che ha AGGIUNTO DA SOLA pesano più
 di quelli solo salvati.
-Se ricevi i CRITERI IMPARATI DALLE SUE SCELTE, applicali: descrivono cosa sceglie e cosa scarta davvero. Quando le scelte
+LE CANDIDATURE COMANDANO SU TUTTO: un annuncio dello stesso tipo di uno a cui si è CANDIDATA o che ha AGGIUNTO DA SOLA (stesso
+ruolo, anche in un'altra azienda o in un altro settore; oppure ruolo simile nella stessa azienda) vale almeno 75. Nessun criterio
+qui sotto può abbassare quel voto: se un criterio sembra escludere un annuncio simile a una sua candidatura, è il criterio a
+essere troppo stretto.
+Se ricevi i CRITERI IMPARATI DALLE SUE SCELTE, applicali agli altri annunci: sono tendenze ricavate dalle scelte, non regole.
+Un settore o un tipo di azienda che i criteri non nominano non è escluso. Quando le scelte
 contraddicono l'intervista (lavoro desiderato, settori esclusi, livello) VALGONO LE SCELTE: l'intervista è di tempo fa, le scelte
 sono di adesso. Un settore escluso nell'intervista ma indicato tra quelli che ora sceglie non va più escluso ("x": false).
 Quando uno scarto ha un motivo ("perché: ..."), applicalo a tutti gli annunci simili per quel motivo (stesso settore, stesso

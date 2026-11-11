@@ -142,6 +142,7 @@ def main():
         old.unlink()
     mark.write_text(version, encoding="utf-8")
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    applied_titles = {learn.clean_title(x[0]).lower() for x in learned.get("pos") or [] if len(x) > 2 and x[2]}
 
     def still_new(j):
         """Trovato da poco con una ricerca sull'ultimo mese: le ricerche settimanali non lo rivedono, resta in elenco 7 giorni."""
@@ -155,6 +156,10 @@ def main():
         shutil.copy(f, arch / f.name)
         for j in read(f, {}).get("jobs", []):
             if j.get("last_seen") == run["at"] or still_new(j):
+                # già in archivio con un voto basso ma è lo stesso ruolo di una sua candidatura: vale almeno 75
+                if j.get("ai_fit", 75) < 75 and learn.clean_title(j["title"]).lower() in applied_titles:
+                    j["ai_fit"], j["ai_why"] = 75, "Stesso ruolo di un annuncio a cui ti sei candidata."
+                    j["score"] = min(100, round(0.25 * j.get("score_rules", j["score"]) + 0.75 * 75))
                 jobs.append({k: j[k] for k in JOB_FIELDS if j.get(k) not in (None, "", [], {})})
     if deep_new:  # la ricerca è arrivata in fondo: questi ruoli hanno avuto la loro ricerca sull'ultimo mese
         deep_done.update({t.lower(): today.isoformat() for t in deep_new})
