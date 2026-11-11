@@ -10,6 +10,7 @@ Per cambiare ruoli, parole chiave o pesi basta modificare questo file.
 import re
 
 MIN_SCORE = 45
+WIDE_MIN = 60  # voto minimo del giudice AI per un titolo fuori dai ruoli della persona, entrato solo dal filtro largo delle sue città
 
 # (famiglia, punti base 0-40, regex sul titolo). Vince la prima che combacia.
 FAMILIES = [

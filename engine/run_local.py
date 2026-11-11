@@ -301,7 +301,10 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
             j["reasons"].insert(1, {"t": "Settore che preferisci", "k": "ok"})
             j["preferred"] = True
         j["reasons"].insert(1, {"t": j.get("ai_why") or "Valutato dall'AI", "k": "ok" if fit >= 60 else "warn"})
-        return fit >= 40 and not excluded                 # sotto 40 c'entra poco o niente
+        # sotto 40 c'entra poco o niente. Un titolo fuori dai ruoli della persona, entrato solo perché è in una sua città
+        # (parola di mestiere imparata, azienda seguita), resta solo se il giudice lo trova davvero adatto: i suoi criteri
+        # vengono prima del numero di annunci
+        return fit >= (rules.WIDE_MIN if rules.classify(j["title"]) is None else 40) and not excluded
 
     votes = {}
     if rules.PROFILE and not new_jobs and retry:  # nessun annuncio nuovo: il giudice lavora solo su quelli rimasti senza voto

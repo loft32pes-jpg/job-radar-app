@@ -164,6 +164,11 @@ def main():
     gone = {(str((f.get("job") or {}).get("title", "")).lower(), str((f.get("job") or {}).get("company", "")).lower())
             for f in (read(user / "preferiti.json", {}).get("favs") or {}).values() if f.get("state") == "discarded"}
     jobs = [j for j in jobs if (j["title"].lower(), j["company"].lower()) not in gone]
+    # titoli fuori dai suoi ruoli entrati dal filtro largo delle città: restano solo con un voto alto del giudice
+    # (vale anche per gli annunci già in archivio, votati quando la soglia era più bassa)
+    import rules
+    rules.configure(learn.apply(dict(read(profile, {}), learned=learned)))
+    jobs = [j for j in jobs if rules.classify(j["title"]) is not None or j.get("ai_fit", 0) >= rules.WIDE_MIN]
     jobs.sort(key=lambda j: -j["score"])
 
     # testo completo degli annunci in elenco: serve a chi salva un annuncio (lo rilegge anche quando è sparito dal sito)
