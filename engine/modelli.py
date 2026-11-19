@@ -16,12 +16,22 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 SKIP = re.compile(r"whisper|tts|guard|embed|image|audio|vision|transcribe|robot|computer|live|native|lyria|veo|banana|aqa|"
-                  r"deep-research|antigravity|customtools|allam|prompt|imagen|omni|clip|realtime|-8b\b|1b\b|3b\b|instant|orpheus|gemma", re.I)
+                  r"deep-research|antigravity|customtools|allam|prompt|imagen|omni|clip|realtime|instant|orpheus|genie|"
+                  r"uncensored|safeguard|coder|codestral|devstral|math|reward|retriever|rerank|nemoguard|parse|ocr|translate|"
+                  r"(?<![\d.a-z])[1-8](?:\.\d+)?b\b|e2b|e4b", re.I)  # modelli fino a 8 miliardi di parametri: troppo deboli
+# servizi gratuiti senza chiave e senza account: solo per il giudice (ricevono il profilo senza nome né contatti e gli
+# annunci), mai per scrivere candidature o preparare colloqui (lì c'è il testo del CV)
+KEYLESS = [{"name": "Pollinations", "base_url": "https://text.pollinations.ai/openai", "models": ["openai"]}]
+
+
+MAX_TRY, MAX_JUDGE = 24, 14  # modelli provati e tenuti per fornitore: ognuno ha la sua quota gratuita giornaliera
 
 
 def _get(url, key, body=None, timeout=40):
-    req = Request(url, data=json.dumps(body).encode() if body is not None else None,
-                  headers={"Authorization": "Bearer " + key, "Content-Type": "application/json", "User-Agent": "JobRadar/1.0"})
+    headers = {"Content-Type": "application/json", "User-Agent": "JobRadar/1.0"}
+    if key:
+        headers["Authorization"] = "Bearer " + key
+    req = Request(url, data=json.dumps(body).encode() if body is not None else None, headers=headers)
     with urlopen(req, timeout=timeout) as r:
         return json.load(r)
 
@@ -46,7 +56,9 @@ def probe(base, key, model):
     t = time.time()
     try:
         out = _get(base + "/chat/completions", key, body, timeout=35)
-        json.loads(re.search(r"\{.*\}", out["choices"][0]["message"]["content"], re.S).group(0))
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import ai
+        ai.parse_json(out["choices"][0]["message"]["content"])
         return round(time.time() - t, 1), None
     except HTTPError as e:
         return None, e.code
@@ -68,20 +80,27 @@ def main():
         except Exception as e:
             print(f"{name}: elenco modelli non disponibile ({type(e).__name__})")
             continue
+        if "openrouter.ai" in base:  # su OpenRouter solo i modelli gratuiti (gli altri si pagano)
+            ids = [i for i in ids if i.endswith(":free")]
         # niente "pro" (fuori dal piano gratuito) né alias "-latest" (stessa quota di un altro modello): ogni modello in più
         # ha la sua quota giornaliera, quindi più modelli = più annunci valutati
-        ids = sorted({i for i in ids if not SKIP.search(i) and not re.search(r"(?<![a-z])pro\b|latest", i)}, key=rank, reverse=True)[:14]
+        ids = sorted({i for i in ids if not SKIP.search(i) and not re.search(r"(?<![a-z])pro\b|latest", i)}, key=rank, reverse=True)[:MAX_TRY]
         ok, busy = [], []
         for mid in ids:
             sec, err = probe(base, p["api_key"], mid)
             print(f"{name} {mid}: " + (f"risponde in {sec} s" if sec is not None else f"non disponibile ({err})"))
             if sec is not None and sec < 25:
                 ok.append(mid)
-            elif err == 503:  # sovraccarico del momento, non quota finita: al giudice serve lo stesso (se non risponde esce da solo)
+            elif err in (503, "TimeoutError"):  # sovraccarico o lentezza del momento, non quota finita: al giudice serve lo stesso (se non risponde esce da solo)
                 busy.append(mid)
+        if ok or busy:
+            result["fornitori"][name] = {"scrittura": ok[:5], "giudice": (ok + busy)[:MAX_JUDGE]}
+            candidates += [(rank(m), name, m) for m in ok[:5]]
+    for p in KEYLESS:
+        ok = [m for m in p["models"] if probe(p["base_url"], "", m)[0] is not None]
+        print(f"{p['name']} (senza chiave): " + (", ".join(ok) if ok else "non disponibile"))
         if ok:
-            result["fornitori"][name] = {"scrittura": ok[:4], "giudice": (ok + busy)[:8]}
-            candidates += [(rank(m), name, m) for m in ok[:4]]
+            result["fornitori"][p["name"]] = {"scrittura": [], "giudice": ok, "keyless": p["base_url"]}
     result["scrittura"] = [[n, m] for _, n, m in sorted(candidates, reverse=True)]
     if not result["scrittura"]:
         print("Nessun modello disponibile: tengo la scelta di ieri")

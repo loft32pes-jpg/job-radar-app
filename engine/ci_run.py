@@ -114,6 +114,10 @@ def main():
             p["judge_models"] = picked
             if p is cfg.get("ai"):
                 p["model"] = picked[0]
+    for name, sel in chosen.items():  # servizi gratuiti senza chiave (solo giudice)
+        if sel.get("keyless") and sel.get("giudice"):
+            cfg.setdefault("ai", {}).setdefault("extra", []).append({"name": name, "base_url": sel["keyless"], "keyless": True,
+                                                                   "judge_models": sel["giudice"]})
     if os.environ.get("JR_LI_MINUTES"):  # con poche persone attive la ricerca può durare di più e leggere tutto
         cfg.setdefault("linkedin", {})["max_minutes"] = float(os.environ["JR_LI_MINUTES"])
     if os.environ.get("JR_LI_SHARE"):  # quota del tempo per sfogliare le ricerche (il resto è per leggere gli annunci)

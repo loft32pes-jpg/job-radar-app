@@ -28,6 +28,43 @@ def _cfg():
     return read_json(ROOT / "config.json", {})
 
 
+def parse_json(raw: str):
+    """JSON della risposta di un modello, anche se prima scrive il suo ragionamento (<thought>, <think>) o del testo."""
+    raw = re.sub(r"(?is)<(thought|think|thinking)>.*?</\1>", " ", raw or "")
+    raw = re.sub(r"(?is)^.*?</(thought|think|thinking)>", " ", raw)  # ragionamento senza tag di apertura
+    raw = re.sub(r"```(?:json)?", " ", raw)
+    try:
+        return json.loads(raw)
+    except ValueError:
+        pass
+    start = raw.find("{")
+    while start != -1:  # il primo oggetto JSON completo che si lascia leggere
+        depth, instr, esc = 0, False, False
+        for i in range(start, len(raw)):
+            ch = raw[i]
+            if instr:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    instr = False
+                continue
+            if ch == '"':
+                instr = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(raw[start:i + 1])
+                    except ValueError:
+                        break
+        start = raw.find("{", start + 1)
+    raise ValueError("risposta senza JSON")
+
+
 def scrub(text: str) -> str:
     """Toglie email, telefoni e link personali prima di inviare un testo a un servizio online."""
     text = re.sub(r"[\w.+-]+@[\w-]+\.[\w.]+", "[email]", text or "")
@@ -128,8 +165,7 @@ def write_json(system: str, user: str, order, budget_s=50):
                           headers={"Content-Type": "application/json", "User-Agent": "JobRadar/1.0", "Authorization": "Bearer " + p["api_key"]})
             with urlopen(req, timeout=max(8, min(45, budget_s - (time.time() - t0)))) as r:
                 raw = json.load(r)["choices"][0]["message"]["content"]
-            m = re.search(r"\{.*\}", raw or "", re.S)
-            return json.loads(m.group(0) if m else raw), model
+            return parse_json(raw), model
         except Exception as e:
             errors.append(f"{model}: {getattr(e, 'code', type(e).__name__)}")
     raise AIError("Nessuna AI ha risposto (" + ", ".join(errors[-3:]) + "). Riprova tra un minuto.")
@@ -144,8 +180,7 @@ def chat_json(system: str, user: str, online_ok=True):
         for attempt in range(3):
             try:
                 raw = fn(system, user)
-                m = re.search(r"\{.*\}", raw or "", re.S)
-                return json.loads(m.group(0) if m else raw), name
+                return parse_json(raw), name
             except Exception as e:  # risposta non leggibile o servizio occupato: si aspetta e si riprova, poi si passa al successivo
                 errors.append(f"{name}: {type(e).__name__} {str(e)[:60]}")
                 busy = getattr(e, "code", 0) in (402, 429, 503)  # il servizio gratuito accetta una richiesta ogni tanto

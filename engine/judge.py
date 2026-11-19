@@ -64,7 +64,7 @@ def _models():
     ai = read_json(ROOT / "config.json", {}).get("ai", {})
     out = []
     for p in [ai] + list(ai.get("extra") or []):
-        if not (p.get("base_url") and p.get("api_key")):
+        if not (p.get("base_url") and (p.get("api_key") or p.get("keyless"))):
             continue
         url = p["base_url"].rstrip("/")
         url += "" if url.endswith("/chat/completions") else "/chat/completions"
@@ -78,10 +78,13 @@ def _call(conn, model, user):
     url, key = conn
     body = {"model": model, "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}],
             "response_format": {"type": "json_object"}, "temperature": 0.1}
-    req = Request(url, data=json.dumps(body).encode("utf-8"),
-                  headers={"Content-Type": "application/json", "Authorization": "Bearer " + key, "User-Agent": "JobRadar/1.0"})
-    with urlopen(req, timeout=60) as r:
-        return json.loads(json.load(r)["choices"][0]["message"]["content"])
+    headers = {"Content-Type": "application/json", "User-Agent": "JobRadar/1.0"}
+    if key:
+        headers["Authorization"] = "Bearer " + key
+    req = Request(url, data=json.dumps(body).encode("utf-8"), headers=headers)
+    import ai as ai_mod
+    with urlopen(req, timeout=90) as r:
+        return ai_mod.parse_json(json.load(r)["choices"][0]["message"]["content"])
 
 
 def _person(profile):
