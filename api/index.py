@@ -20,6 +20,7 @@ from urllib.request import Request, urlopen
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "engine"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _candidature as cand  # noqa: E402
+import _colloqui as coll  # noqa: E402
 
 REPO = os.environ.get("JR_REPO", "loft32pes-jpg/job-radar")              # repo PRIVATO con i dati (ramo "dati")
 RUN_REPO = os.environ.get("JR_RUN_REPO", "loft32pes-jpg/job-radar-app")  # repo PUBBLICO del codice: lì gira la ricerca
@@ -159,9 +160,9 @@ def a_entra(body, _uid):
 
 def a_dati(_body, uid):
     paths = ["utenti/index.json", f"utenti/{uid}/profilo.json", f"utenti/{uid}/risultati.json", f"utenti/{uid}/stato.json",
-             f"utenti/{uid}/preferiti.json", f"utenti/{uid}/imparato.json"]
-    with ThreadPoolExecutor(6) as ex:
-        users, prof, res, st, fav, lr = ex.map(read, paths)
+             f"utenti/{uid}/preferiti.json", f"utenti/{uid}/imparato.json", f"utenti/{uid}/colloqui.json"]
+    with ThreadPoolExecutor(7) as ex:
+        users, prof, res, st, fav, lr, cl = ex.map(read, paths)
     import learn
     for url, f in ((fav or {}).get("favs") or {}).items():
         f["state"] = cand.OLD_STATES.get(f.get("state"), f.get("state") or "interested")
@@ -184,7 +185,7 @@ def a_dati(_body, uid):
                    "learned": learn.view(lr)}
     res = res or {}
     return {"name": users[uid].get("name", ""), "profile": summary, "run": res.get("run"), "families": res.get("families") or {},
-            "jobs": res.get("jobs") or [], "state": clean_state(st), "tracker": fav or {},
+            "jobs": res.get("jobs") or [], "state": clean_state(st), "tracker": fav or {}, "colloqui": (cl or {}).get("list") or {},
             "token": make_token(uid)}  # l'accesso si rinnova a ogni apertura: chi usa l'app non deve mai rientrare
 
 
@@ -541,8 +542,215 @@ def a_compila(body, uid):
             "key": next((k for k, f in t["favs"].items() if f is match), None), "model": model}
 
 
+# ---------- colloqui: una pagina di preparazione per ogni colloquio ----------
+def _colloqui(uid):
+    cs = read(f"utenti/{uid}/colloqui.json", {}) or {}
+    cs.setdefault("list", {})
+    return cs
+
+
+def _cfind(cs, cid):
+    c = cs["list"].get(str(cid or ""))
+    if not c:
+        raise Fail("Colloquio non trovato: forse è stato cancellato da un altro dispositivo.", 404)
+    return c
+
+
+def _guess_lang(text):
+    """Lingua di un annuncio contando le parole più comuni (basta per scegliere la lingua del colloquio)."""
+    import re as _re
+    words = _re.findall(r"[a-zà-ú]+", (text or "").lower())[:1500]
+    marks = {"it": {"il", "di", "che", "per", "con", "della", "nel", "sono", "una", "lavoro"},
+             "en": {"the", "and", "of", "to", "with", "you", "our", "we", "for", "will"},
+             "es": {"el", "los", "las", "para", "con", "del", "una", "que", "nuestro", "trabajo"},
+             "fr": {"le", "les", "des", "pour", "avec", "une", "nous", "vous", "est", "du"},
+             "de": {"der", "die", "und", "mit", "für", "wir", "sie", "ist", "das", "zu"},
+             "nl": {"de", "het", "een", "en", "van", "voor", "met", "wij", "je", "zijn"}}
+    score = {k: sum(w in v for w in words) for k, v in marks.items()}
+    return max(score, key=score.get) if words else "en"
+
+
+def _cjob(uid, c):
+    """Annuncio del colloquio: dalla candidatura (con il testo completo) o, se è stata tolta, dalla copia nel colloquio."""
+    f = _tracker(uid)["favs"].get(c.get("key")) or {}
+    job = f.get("job") or c.get("job") or {}
+    jd = f.get("jd") or job.get("excerpt") or ""
+    return job, jd, (c.get("lang") or _guess_lang(jd + " " + str(job.get("title") or "")))
+
+
+def _groq_key():
+    import ai
+    a = ai._cfg().get("ai", {}) or {}
+    for p in [a] + list(a.get("extra") or []):
+        if "groq.com" in str(p.get("base_url") or "") and p.get("api_key"):
+            return p["api_key"]
+    return ""
+
+
+def ai_scrub(t):
+    import ai
+    return ai.scrub(str(t or ""))
+
+
+def a_colloquio(body, uid):
+    """Programma, modifica o cancella un colloquio; con «after» salva com'è andata (serve a preparare il giro dopo)."""
+    import re as _re
+    cs = _colloqui(uid)
+    cid = str(body.get("id") or "")[:20]
+    if body.get("delete"):
+        cs["list"].pop(cid, None)
+        write(f"utenti/{uid}/colloqui.json", cs, "Colloquio cancellato")
+        return {"colloqui": cs["list"]}
+    t = _tracker(uid)
+    if cid:
+        c = _cfind(cs, cid)
+    else:
+        key = str(body.get("key") or "")[:400]
+        if key not in t["favs"]:
+            raise Fail("Scegli la candidatura a cui si riferisce il colloquio.")
+        cid = secrets.token_hex(4)
+        c = cs["list"][cid] = {"key": key, "created": time.strftime("%Y-%m-%d %H:%M")}
+    if "when" in body:
+        w = str(body.get("when") or "")[:16]
+        if w and not _re.fullmatch(r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?", w):
+            raise Fail("Data del colloquio non valida.")
+        c["when"] = w
+    for k, n in (("round", 20), ("mode", 20), ("lang", 5), ("with", 120), ("esito", 20)):
+        if k in body:
+            c[k] = " ".join(str(body.get(k) or "").split())[:n]
+    for k, n in (("notes", 1500), ("after", 4000)):
+        if k in body:
+            c[k] = str(body.get(k) or "").strip()[:n]
+    f = t["favs"].get(c["key"]) or {}
+    j = f.get("job") or {}
+    c["job"] = {k: j.get(k) for k in ("title", "title_it", "company", "city", "country", "url") if j.get(k)} or c.get("job") or {}
+    write(f"utenti/{uid}/colloqui.json", cs, "Colloquio")
+    if f and f.get("state") in ("interested", "applied", "replied", "cv_requested"):  # in bacheca passa a «Colloquio»
+        f["state"] = "interview"
+        f.setdefault("log", []).append({"s": "interview", "t": time.strftime("%Y-%m-%d")})
+        write(f"utenti/{uid}/preferiti.json", t, "Candidature aggiornate")
+    return {"colloqui": cs["list"], "id": cid, "tracker": t}
+
+
+def a_colloquio_web(body, uid):
+    """Passo 1 della preparazione: cerca sul web l'azienda (sito, notizie, video, come fa i colloqui).
+    Al web va solo il nome dell'azienda e il ruolo."""
+    cs = _colloqui(uid)
+    c = _cfind(cs, body.get("id"))
+    job, _jd, lang = _cjob(uid, c)
+    if not job.get("company"):
+        raise Fail("Alla candidatura manca il nome dell'azienda.")
+    c["web"] = coll.gather(job, lang, deadline=18, groq_key=_groq_key())
+    write(f"utenti/{uid}/colloqui.json", cs, "Ricerca sull'azienda")
+    g = c["web"]
+    return {"trovati": {"risultati": len(g["web"]), "pagine": len(g["pagine"]), "video": len(g["video"]), "ai": bool(g.get("ai"))}}
+
+
+def a_colloquio_ricerca(body, uid):
+    """Passo 2: l'AI mette in ordine quello che si è trovato sull'azienda (solo fatti delle fonti)."""
+    import ai
+    cs = _colloqui(uid)
+    c = _cfind(cs, body.get("id"))
+    job, jd, _lang = _cjob(uid, c)
+    g = c.get("web") or {}
+    user = cand.job_text(job, jd[:4000]) + "\n\nFONTI TROVATE SUL WEB\n" + (coll.sources_text(g) or "(nessuna fonte trovata)")
+    try:
+        data, model = ai.write_json(coll.RESEARCH_SYSTEM, user, _writing_order(), budget_s=50)
+    except Exception as e:
+        raise Fail("L'AI non risponde in questo momento. Riprova tra un minuto.", 503) from e
+    c["research"] = dict(coll.clean_research(data, g), modello=model)
+    write(f"utenti/{uid}/colloqui.json", cs, "Ricerca sull'azienda")
+    return {"colloquio": c}
+
+
+def _cinput(uid, c, cv, cs):
+    """Tutto quello che serve all'AI per preparare il colloquio: persona, annuncio, ricerca, dati del colloquio, giri precedenti."""
+    prof = read(f"utenti/{uid}/profilo.json", {}) or {}
+    job, jd, lang = _cjob(uid, c)
+    before = [x for x in cs["list"].values() if x is not c and x.get("key") == c.get("key") and x.get("after")]
+    prev = "".join(f"\n\nCOME È ANDATO UN COLLOQUIO PRECEDENTE PER QUESTO ANNUNCIO ({x.get('when', '')[:10]}, "
+                   f"{coll.ROUNDS.get(x.get('round'), x.get('round') or '')}):\n{ai_scrub(x['after'])[:1500]}" for x in before[-2:])
+    return (cand.person_text(prof, cv) + "\n\n" + cand.job_text(job, jd[:6000]) + "\n\n" + coll.research_brief(c.get("research"))
+            + "\n\n" + coll.meeting_text(c) + f"Lingua del colloquio da usare: {coll.LANGS.get(lang, lang)}." + prev)
+
+
+def a_colloquio_piano(body, uid):
+    """Passo 3: piano di preparazione (presentazione, perché loro, punti forti e deboli, storie, domande da fare)."""
+    import ai
+    cs = _colloqui(uid)
+    c = _cfind(cs, body.get("id"))
+    user = _cinput(uid, c, str(body.get("cv") or ""), cs)
+    try:
+        data, model = ai.write_json(coll.PLAN_SYSTEM, user, _writing_order(), budget_s=52)
+    except Exception as e:
+        raise Fail("L'AI non risponde in questo momento. Riprova tra un minuto.", 503) from e
+    c["plan"] = dict(coll.clean_plan(data), modello=model)
+    write(f"utenti/{uid}/colloqui.json", cs, "Piano per il colloquio")
+    return {"colloquio": c}
+
+
+def a_colloquio_domande(body, uid):
+    """Passo 4: le domande della simulazione. Con more=true ne aggiunge altre, diverse e più difficili."""
+    import ai
+    cs = _colloqui(uid)
+    c = _cfind(cs, body.get("id"))
+    qs = c.get("qs") or []
+    user = _cinput(uid, c, str(body.get("cv") or ""), cs)
+    more = bool(body.get("more") and qs)
+    if more:
+        user += ("\n\nDOMANDE GIÀ PREPARATE (non ripeterle):\n" + "\n".join("- " + q["d"] for q in qs)
+                 + "\n\nPrepara 6 domande NUOVE, più difficili e più specifiche per questa azienda e questo ruolo.")
+    try:
+        data, model = ai.write_json(coll.QUESTIONS_SYSTEM, user, _writing_order(), budget_s=52)
+    except Exception as e:
+        raise Fail("L'AI non risponde in questo momento. Riprova tra un minuto.", 503) from e
+    new = coll.clean_questions(data, start=len(qs) if more else 0, reported=((c.get("research") or {}).get("selezione") or {}).get("domande_riportate") or [])
+    if not new:
+        raise Fail("L'AI non ha preparato le domande. Riprova.", 503)
+    c["qs"] = (qs + new[:8]) if more else new
+    c["qlang"] = coll._s(data.get("lingua"), 5).lower() or c.get("qlang") or ""
+    write(f"utenti/{uid}/colloqui.json", cs, "Domande del colloquio")
+    return {"colloquio": c}
+
+
+def a_colloquio_risposta(body, uid):
+    """Simulazione: la persona risponde a una domanda, la coach la valuta e propone la risposta migliore.
+    Con «nuova» si aggiunge una domanda (il rilancio di chi intervista) subito dopo quella indicata."""
+    import ai
+    cs = _colloqui(uid)
+    c = _cfind(cs, body.get("id"))
+    qs = c.setdefault("qs", [])
+    if body.get("nuova"):
+        after = next((i for i, q in enumerate(qs) if q["id"] == body.get("qid")), len(qs) - 1)
+        q = {"id": "r" + secrets.token_hex(3), "d": coll._s(body["nuova"], 400), "it": "", "tipo": "rilancio",
+             "perche": "Approfondimento sulla risposta di prima: chi seleziona vuole vedere se regge e se hai esempi concreti.",
+             "traccia": "", "online": False, "prove": []}
+        qs.insert(after + 1, q)
+        write(f"utenti/{uid}/colloqui.json", cs, "Domanda di approfondimento")
+        return {"colloquio": c, "qid": q["id"]}
+    q = next((x for x in qs if x["id"] == body.get("qid")), None)
+    if not q:
+        raise Fail("Domanda non trovata.")
+    answer = ai_scrub(body.get("answer") or "").strip()[:4000]
+    if len(answer) < 3:
+        raise Fail("Scrivi o detta la tua risposta.")
+    user = (_cinput(uid, c, str(body.get("cv") or ""), cs)
+            + f"\n\nDOMANDA DEL COLLOQUIO (in {coll.LANGS.get(_guess_lang(q['d']), 'inglese')}): {q['d']}\nCosa vuole scoprire chi la fa: {q.get('perche', '')}"
+            + f"\n\nRISPOSTA DELLA PERSONA (in {coll.LANGS.get(_guess_lang(answer), 'inglese')}):\n{answer}")
+    try:
+        data, model = ai.write_json(coll.EVAL_SYSTEM, user, _writing_order(), budget_s=48)
+    except Exception as e:
+        raise Fail("L'AI non risponde in questo momento. Riprova tra un minuto.", 503) from e
+    q.setdefault("prove", []).append(dict(coll.clean_eval(data, answer), modello=model))
+    q["prove"] = q["prove"][-5:]
+    write(f"utenti/{uid}/colloqui.json", cs, "Risposta al colloquio")
+    return {"colloquio": c}
+
+
 ACTIONS = {"login": a_login, "entra": a_entra, "citta": a_citta, "impara": a_impara, "importa": a_importa, "avvisi": a_avvisi, "dati": a_dati, "stato": a_stato, "intervista": a_intervista, "profilo": a_profilo,
-           "aggiorna": a_aggiorna, "preferito": a_preferito, "luogo": a_luogo, "kit": a_kit, "compila": a_compila, "preferenze": a_preferenze}
+           "aggiorna": a_aggiorna, "preferito": a_preferito, "luogo": a_luogo, "kit": a_kit, "compila": a_compila, "preferenze": a_preferenze,
+           "colloquio": a_colloquio, "colloquio_web": a_colloquio_web, "colloquio_ricerca": a_colloquio_ricerca, "colloquio_piano": a_colloquio_piano,
+           "colloquio_domande": a_colloquio_domande, "colloquio_risposta": a_colloquio_risposta}
 
 
 def handle(action, body, token):

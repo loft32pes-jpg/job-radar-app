@@ -32,6 +32,7 @@ const ICON = {
   close: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   board: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></svg>',
   out: '<svg viewBox="0 0 24 24"><path d="M14 5h5v14h-5"/><path d="M4 12h11M11 8l4 4-4 4"/></svg>',
+  mic: '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
   logo: '<svg viewBox="0 0 32 32" aria-hidden="true"><circle class="ring" cx="16" cy="16" r="14"/><circle class="ring" cx="16" cy="16" r="8.500"/><g class="sweep"><path d="M16 16L16 2A14 14 0 0 1 28.100 9z" fill="#36F2A0" opacity=".28"/></g><circle cx="16" cy="16" r="2.200" fill="#36F2A0"/><circle cx="22" cy="10" r="1.800" fill="#36F2A0"/></svg>',
 };
 const masc = who => h("span", {class:"masc", html: window.MASC[who]});
@@ -135,16 +136,18 @@ function shell(content){
   const run = S.data.state && S.data.state.running;
   const refresh = h("button", {class:"pill" + (run ? " busy" : ""), type:"button", onclick: refreshNow, html: ICON.refresh + "<span>" + (run ? "Ricerca in corso" : "Aggiorna") + "</span>"});
   const nApps = Object.values(favs()).filter(f => f.state !== "discarded").length;
-  const tab = (id, icon, label, count) => h("button", {type:"button", "aria-current": S.tab === id ? "page" : null, onclick: () => { S.tab = id; S.shown = 40; render(); window.scrollTo(0, 0); }, html: icon},
+  const tab = (id, icon, label, count) => h("button", {type:"button", "aria-current": S.tab === id ? "page" : null, onclick: () => { stopRecog(); if (id === "int") S.cid = null; S.tab = id; S.shown = 40; render(); window.scrollTo(0, 0); }, html: icon},
     h("span", null, label, count ? h("span", {class:"count"}, " " + count) : null));
   $app.replaceChildren(
     h("header", {class:"top"}, h("div", {class:"brand", html: ICON.logo + "<span>Job Radar</span>"}), refresh),
     h("main", {class: S.tab === "favs" ? "wide" : null}, content),
-    h("nav", {class:"tabs", "aria-label":"Sezioni"}, tab("jobs", ICON.list, "Annunci"), tab("favs", ICON.board, "Candidature", nApps), tab("me", ICON.user, "Profilo")));
+    h("nav", {class:"tabs", "aria-label":"Sezioni"}, tab("jobs", ICON.list, "Annunci"), tab("favs", ICON.board, "Candidature", nApps),
+      tab("int", ICON.mic, "Colloqui", Object.values(colloqui()).filter(c => !isPast(c)).length + Object.entries(favs()).filter(([k, f]) => f.state === "interview" && !Object.values(colloqui()).some(c => c.key === k)).length), tab("me", ICON.user, "Profilo")));
 }
 function render(){
   if (S.tab === "favs") return shell(viewApps());
   if (S.tab === "me") return shell(viewMe());
+  if (S.tab === "int") return shell(S.cid ? viewColloquio(S.cid) : viewColloqui());
   shell(S.data.state && S.data.state.running && !S.data.jobs.length ? viewWaiting() : viewJobs());
 }
 
@@ -335,11 +338,12 @@ async function setState(key, job, state, thenKit){
   if (isNew) t.favs[key] = {job, state, note:"", log:[{s: state, t: new Date().toISOString().slice(0, 10)}]};
   else { t.favs[key].state = state; (t.favs[key].log = t.favs[key].log || []).push({s: state, t: new Date().toISOString().slice(0, 10)}); }
   const label = state === "discarded" ? "Scartato" : isNew ? "Aggiunto alle candidature" : "Stato: " + STATE[state];
-  if (state === "discarded"){ closeSheet(); render(); setTimeout(() => askWhy(key, job), 280); }
+  if (state === "interview" && !Object.values(colloqui()).some(c => c.key === key && !isPast(c))){ closeSheet(); render(); setTimeout(() => openSchedule(null, key), 280); }
+  else if (state === "discarded"){ closeSheet(); render(); setTimeout(() => askWhy(key, job), 280); }
   else { render(); openApp(key, thenKit); }
   const ok = await track(isNew ? {key, fav: true, job, state} : {key, state}, label);
   if (!ok){ const r = await api("dati"); if (r.ok) S.data = r; render(); return; }
-  if (sheetEl && sheetEl.dataset.k === key && !thenKit) openApp(key);
+  if (sheetEl && sheetEl.dataset.k === key && !thenKit && state !== "interview") openApp(key);
 }
 const WHY = ["Ruolo diverso da quello che cerco", "Settore che non mi interessa", "Troppo senior", "Troppo junior", "Città o zona",
              "Agenzia per il lavoro", "Lingua richiesta", "Non mi convince l'azienda"];
@@ -426,7 +430,8 @@ function viewApps(){
 }
 async function setStateQuiet(key, s){
   const f = favs()[key]; f.state = s; (f.log = f.log || []).push({s, t: new Date().toISOString().slice(0, 10)}); render();
-  if (!await track({key, state: s}, "Stato: " + STATE[s])){ const r = await api("dati"); if (r.ok) S.data = r; render(); }
+  if (!await track({key, state: s}, "Stato: " + STATE[s])){ const r = await api("dati"); if (r.ok) S.data = r; render(); return; }
+  if (s === "interview" && !Object.values(colloqui()).some(c => c.key === key && !isPast(c))) openSchedule(null, key);
 }
 
 /* ---------- scheda di una candidatura: annuncio completo, stato, note, materiale dell'AI ---------- */
@@ -481,6 +486,7 @@ function openApp(key, autoKit){
   const body = [
     h("div", {class:"sec"}, h("h4", null, "Stato"), statusChips(key, j, f.state)),
     (f.log || []).length > 1 ? h("ol", {class:"timeline"}, f.log.slice().reverse().map(l => h("li", null, h("b", null, STATE[l.s] || l.s), " · " + new Date(l.t).toLocaleDateString("it-IT", {day:"numeric", month:"long"})))) : null,
+    colloquiOf(key),
     h("div", {class:"sec"}, h("h4", null, "Candidati"), kitView(key, f),
       h("div", {class:"applyhow"}, h("b", null, "Per inviare: "), "apri l'annuncio e vai al modulo. ",
         h("span", {class:"desk"}, "Sul computer premi il segnalibro «Compila con Job Radar»: compila lui i campi con i tuoi dati e il CV, tu controlli e premi Invia."),
@@ -494,6 +500,17 @@ function openApp(key, autoKit){
   openSheet(h("div", null, h("h2", null, j.title_it || j.title), h("div", {class:"co"}, [j.company, place(j)].filter(Boolean).join(" · "))), body, [sent, open].filter(Boolean), key);
   // il materiale si scrive da solo la prima volta che si apre la candidatura: alla persona resta solo da rivedere
   if (!f.kit && !f._kitAsked){ f._kitAsked = true; const b = sheetEl && sheetEl.querySelector(".kitempty .btn"); if (b) makeKit(key, b); }
+}
+
+function colloquiOf(key){
+  const mine = Object.entries(colloqui()).filter(([, c]) => c.key === key);
+  const f = favs()[key];
+  if (!mine.length && !(f && ["interview", "replied", "cv_requested", "offer"].includes(f.state))) return null;
+  return h("div", {class:"sec"}, h("h4", null, "Colloqui"),
+    mine.map(([id, c]) => h("button", {class:"ccard", type:"button", onclick: () => { closeSheet(); openColloquio(id); }},
+      h("div", {class:"cwhen"}, whenLabel(c)), h("b", null, ROUND[c.round] || "Colloquio"), h("div", {class:"co"}, c.plan ? "Preparazione pronta: apri la pagina" : "Apri la preparazione"))),
+    h("button", {class:"btn" + (mine.length ? "" : " solid"), type:"button", style:"width:100%;margin-top:8px", onclick: () => openSchedule(null, key, mine.length ? "manager" : "hr")},
+      mine.length ? "Programma un altro colloquio" : "Hai un colloquio? Preparati con Tina e Vale"));
 }
 
 /* lettera di presentazione in PDF (per i moduli che la chiedono come allegato) */
@@ -542,8 +559,8 @@ async function pdfText(file){
 const ME_FIELDS = [["nome","Nome"],["cognome","Cognome"],["email","Email","email"],["telefono","Telefono","tel"],["citta","Città in cui vivi"],
   ["linkedin","Profilo LinkedIn (link)","url"],["sito","Sito o portfolio (link)","url"]];
 function cvForAi(){
-  const m = me(), extra = [["Città in cui vive", m.citta]].filter(x => x[1]);
-  return store.get("cvtext", "") + (extra.length ? "\n\nINFORMAZIONI PER I MODULI\n" + extra.map(([k, v]) => k + ": " + v).join("\n") : "");
+  const m = me(), extra = [["Città in cui vive", m.citta]].filter(x => x[1]), li = store.get("litext", "");
+  return store.get("cvtext", "") + (li ? "\n\nPROFILO LINKEDIN\n" + li.slice(0, 3000) : "") + (extra.length ? "\n\nINFORMAZIONI PER I MODULI\n" + extra.map(([k, v]) => k + ": " + v).join("\n") : "");
 }
 function bookmarklet(){
   const src = BOOKMARKLET.toString().replace("__ORIGIN__", location.origin);
@@ -569,6 +586,18 @@ function viewMe(){
       await idb.set("cvfile", file); store.set("cvtext", text.slice(0, 20000)); store.set("cvname", file.name);
       cvInfo.textContent = `CV caricato: ${file.name} (${text.length} caratteri letti)`;
     } catch (er) { cvInfo.textContent = "Non riesco a leggere questo PDF: serve un PDF con testo selezionabile, non una foto o una scansione."; }
+  }});
+  const liName = store.get("liname", "");
+  const liInfo = h("p", {class:"hint"}, liName ? `Profilo LinkedIn caricato: ${liName} (${store.get("litext", "").length} caratteri letti)` : "Facoltativo. Su LinkedIn apri il tuo profilo, premi «Altro» (o «Risorse») e poi «Salva in PDF». Serve a Tina e Vale per prepararti ai colloqui con tutto quello che hai fatto.");
+  const liInput = h("input", {type:"file", accept:"application/pdf", class:"visually-hidden", id:"lifile", onchange: async e => {
+    const file = e.target.files[0]; if (!file) return;
+    liInfo.textContent = "Leggo il profilo...";
+    try {
+      const text = await pdfText(file);
+      if (text.length < 200) throw new Error("vuoto");
+      store.set("litext", text.slice(0, 12000)); store.set("liname", file.name);
+      liInfo.textContent = `Profilo LinkedIn caricato: ${file.name} (${text.length} caratteri letti)`;
+    } catch (er) { liInfo.textContent = "Non riesco a leggere questo PDF: scaricalo di nuovo da LinkedIn con «Salva in PDF»."; }
   }});
   const cityInp = h("input", {type:"text", placeholder:"Aggiungi una città (es. Torino)", "aria-label":"Aggiungi una città", maxlength:"60"});
   const cityAdd = h("button", {class:"btn", type:"button", onclick: async () => { const v = cityInp.value.trim(); if (v && await addPlace(v, cityAdd)) cityInp.value = ""; }}, "Aggiungi");
@@ -636,6 +665,7 @@ function viewMe(){
       a.apply = r.apply; toast("Salvato: vale per il materiale che scrive l'AI");
     })),
     h("div", {class:"sec"}, h("h4", null, "Il tuo CV (PDF)"), cvInfo, h("label", {class:"btn", for:"cvfile", style:"max-width:280px"}, cvName ? "Sostituisci il CV" : "Carica il CV"), cvInput),
+    h("div", {class:"sec"}, h("h4", null, "Il tuo profilo LinkedIn (PDF)"), liInfo, h("label", {class:"btn", for:"lifile", style:"max-width:280px"}, liName ? "Sostituisci il profilo" : "Carica il profilo LinkedIn"), liInput),
     h("div", {class:"sec"}, h("h4", null, "I tuoi dati"), form, msg),
     h("div", {class:"sec desk"}, h("h4", null, "Compilazione automatica dei moduli"),
       h("p", {class:"hint"}, "Trascina questo pulsante nella barra dei preferiti del browser (se non la vedi: Ctrl+Maiusc+B). Quando sei sul modulo di candidatura di un annuncio, cliccalo: Job Radar riempie i campi con i tuoi dati, il CV e risposte scritte su quell'annuncio. Non invia nulla: controlli tu e premi Invia."),
@@ -844,6 +874,303 @@ function viewReview(p){
     editable("Parole dei settori che preferisci", "Separa con una virgola.", "prefer_words"),
     editable("Parole dei settori da escludere", "Separa con una virgola.", "avoid_words"),
     msg, h("div", {class:"actions"}, go)], () => viewInterview(p.answers));
+}
+
+/* ---------- colloqui: una pagina di preparazione per ogni colloquio ---------- */
+const ROUND = {hr:"Primo colloquio (HR)", manager:"Con il responsabile", tecnico:"Tecnico o caso pratico", assessment:"Assessment o di gruppo", finale:"Colloquio finale"};
+const CMODE = {video:"Video", presenza:"Di persona", telefono:"Telefono"};
+const CLANG = {"":"Come l'annuncio", it:"Italiano", en:"English", es:"Español", fr:"Français", de:"Deutsch"};
+const QTYPE = {presentazione:"Presentazione", motivazione:"Motivazione", azienda:"Sull'azienda", ruolo:"Sul ruolo", competenze:"Competenze",
+  comportamentale:"Esperienze passate", situazionale:"Cosa faresti se", pratica:"Prova pratica", curiosita:"Curiosità", scomoda:"Domanda scomoda", rilancio:"Approfondimento"};
+const SPEECH = {it:"it-IT", en:"en-GB", es:"es-ES", fr:"fr-FR", de:"de-DE", nl:"nl-NL", pt:"pt-PT"};
+const colloqui = () => (S.data && S.data.colloqui) || {};
+const cWhen = c => { if (!c || !c.when) return null; const d = new Date(c.when.length === 10 ? c.when + "T09:00" : c.when); return isNaN(d) ? null : d; };
+function whenLabel(c){
+  const d = cWhen(c); if (!d) return "Data da decidere";
+  const day = new Date(d); day.setHours(0, 0, 0, 0); const today = new Date(); today.setHours(0, 0, 0, 0);
+  const n = Math.round((day - today) / 864e5), hour = c.when.length > 10 ? " alle " + d.toLocaleTimeString("it-IT", {hour:"2-digit", minute:"2-digit"}) : "";
+  if (n === 0) return "Oggi" + hour; if (n === 1) return "Domani" + hour; if (n === -1) return "Ieri" + hour;
+  if (n > 1 && n < 7) return d.toLocaleDateString("it-IT", {weekday:"long"}).replace(/^./, x => x.toUpperCase()) + hour;
+  return d.toLocaleDateString("it-IT", {weekday:"short", day:"numeric", month:"long"}) + hour;
+}
+const isPast = c => { const d = cWhen(c); return d ? d.getTime() + 3 * 3600e3 < Date.now() : false; };
+const cJob = c => { const f = favs()[c.key]; return (f && f.job) || c.job || {}; };
+const cLang = c => (c.plan && c.plan.lingua) || c.qlang || c.lang || "en";
+function cStats(c){
+  const qs = c.qs || [], done = qs.filter(q => (q.prove || []).length);
+  const avg = done.length ? done.reduce((s, q) => s + q.prove[q.prove.length - 1].voto, 0) / done.length : null;
+  return {n: qs.length, done: done.length, avg};
+}
+function sortedColloqui(){
+  return Object.entries(colloqui()).sort((a, b) => (cWhen(a[1]) || 0) - (cWhen(b[1]) || 0));
+}
+function cCard(id, c){
+  const j = cJob(c), st = cStats(c), past = isPast(c);
+  return h("button", {class:"ccard" + (past ? " past" : ""), type:"button", onclick: () => openColloquio(id)},
+    h("div", {class:"cwhen"}, whenLabel(c)),
+    h("b", null, j.title_it || j.title || "Colloquio"),
+    h("div", {class:"co"}, [j.company, ROUND[c.round] || "", CMODE[c.mode] || ""].filter(Boolean).join(" · ")),
+    h("div", {class:"ameta"}, c.plan ? h("span", {class:"tag new"}, "Preparazione pronta") : h("span", {class:"tag"}, "Da preparare"),
+      st.n ? h("span", null, `Simulazione ${st.done}/${st.n}` + (st.avg != null ? ` · voto medio ${st.avg.toFixed(1).replace(".", ",")}` : "")) : null,
+      c.esito ? h("span", {class:"tag"}, ESITO[c.esito] || c.esito) : null));
+}
+const ESITO = {attesa:"In attesa di risposta", avanti:"Passata al giro dopo", no:"Non è andata"};
+function viewColloqui(){
+  const all = sortedColloqui(), next = all.filter(([, c]) => !isPast(c)), past = all.filter(([, c]) => isPast(c)).reverse();
+  const add = h("button", {class:"btn solid", type:"button", style:"flex:none", onclick: () => openSchedule()}, "+ Programma un colloquio");
+  // candidature già spostate su «Colloquio» ma senza data: si programmano con un tocco
+  const keys = new Set(all.map(([, c]) => c.key));
+  const todo = Object.entries(favs()).filter(([k, f]) => f.state === "interview" && !keys.has(k));
+  const todoBox = todo.length ? h("div", {class:"sec"}, h("h4", null, "Da programmare"),
+    h("p", {class:"hint"}, "Queste candidature sono in «Colloquio» ma non hanno ancora una data. Toccane una e dimmi quando: preparo la pagina."),
+    h("div", {class:"clist"}, todo.map(([k, f]) => h("button", {class:"ccard", type:"button", onclick: () => openSchedule(null, k)},
+      h("div", {class:"cwhen"}, "Quando è il colloquio?"), h("b", null, f.job.title_it || f.job.title), h("div", {class:"co"}, [f.job.company, place(f.job)].filter(Boolean).join(" · ")))))) : null;
+  if (!all.length) return h("div", {class:"center"},
+    h("h1", null, "I tuoi ", h("em", null, "colloqui")),
+    says("vaglio", "Tina", "Quando ti chiamano per un colloquio, segnalo qui. Per ogni colloquio ti preparo una pagina: cosa sapere dell'azienda, come presentarti, perché sceglierla. Poi facciamo le prove: io ti faccio le domande come una selezionatrice, tu rispondi a voce o per scritto, e Vale ti dice come migliorare."),
+    todoBox, h("div", {class:"actions"}, add));
+  return h("div", {class:"cwrap"},
+    h("section", {class:"hero"}, h("div", {class:"eyebrow"}, "Preparazione ai colloqui"),
+      h("h1", null, next.length ? [h("em", null, String(next.length)), next.length === 1 ? " colloquio in arrivo" : " colloqui in arrivo"] : "Nessun colloquio in arrivo"),
+      h("div", {style:"margin-top:14px;display:flex"}, add)),
+    todoBox,
+    next.length ? h("div", {class:"clist"}, next.map(([id, c]) => cCard(id, c))) : null,
+    past.length ? h("div", {class:"sec"}, h("h4", null, "Già fatti"), h("div", {class:"clist"}, past.map(([id, c]) => cCard(id, c)))) : null);
+}
+function openSchedule(id, presetKey, presetRound){
+  const old = id ? colloqui()[id] : null;
+  const v = Object.assign({key: presetKey || "", date:"", time:"", round: presetRound || "hr", mode:"video", lang:"", with:"", notes:""}, old ? {
+    key: old.key, date: (old.when || "").slice(0, 10), time: (old.when || "").slice(11, 16), round: old.round || "hr", mode: old.mode || "video",
+    lang: old.lang || "", with: old.with || "", notes: old.notes || ""} : {});
+  const order = ["interview", "cv_requested", "replied", "applied", "offer", "interested"];
+  const apps = Object.entries(favs()).filter(([, f]) => f.state !== "discarded" && f.state !== "closed")
+    .sort((a, b) => order.indexOf(a[1].state) - order.indexOf(b[1].state));
+  const chipsOf = (opts, k) => { const box = h("div", {class:"wrap"}); const draw = () => box.replaceChildren(...Object.entries(opts).map(([val, t]) =>
+    h("button", {class:"chip", type:"button", "aria-pressed": String(v[k] === val), onclick: () => { v[k] = val; draw(); }}, t))); draw(); return box; };
+  const sel = h("select", {class:"csel", "aria-label":"Candidatura", onchange: e => { v.key = e.target.value; }},
+    h("option", {value:""}, "Scegli la candidatura..."),
+    apps.map(([k, f]) => h("option", {value: k, selected: k === v.key ? true : null}, [f.job.title_it || f.job.title, f.job.company].filter(Boolean).join(" · "))));
+  const date = h("input", {type:"date", value: v.date, "aria-label":"Giorno", oninput: e => { v.date = e.target.value; }});
+  const time = h("input", {type:"time", value: v.time, "aria-label":"Ora", oninput: e => { v.time = e.target.value; }});
+  const who = h("input", {type:"text", maxlength:"120", value: v.with, placeholder:"Es. recruiter HR, Head of Sales", oninput: e => { v.with = e.target.value; }});
+  const notes = h("textarea", {maxlength:"1500", placeholder:"Es. «Colloquio conoscitivo di 30 minuti su Google Meet, parleremo della tua esperienza e del ruolo»", oninput: e => { v.notes = e.target.value; }}, v.notes);
+  const msg = h("p", {class:"msg", role:"alert"});
+  const go = h("button", {class:"btn solid", type:"button", onclick: async () => {
+    if (!v.key){ msg.textContent = "Scegli la candidatura del colloquio."; return; }
+    if (!v.date){ msg.textContent = "Indica il giorno del colloquio."; return; }
+    go.disabled = true; go.textContent = "Salvo...";
+    const r = await api("colloquio", {id: id || undefined, key: v.key, when: v.date + (v.time ? "T" + v.time : ""), round: v.round, mode: v.mode, lang: v.lang, with: v.with, notes: v.notes});
+    go.disabled = false; go.textContent = "Salva";
+    if (!r.ok){ msg.textContent = r.error; return; }
+    S.data.colloqui = r.colloqui; if (r.tracker) S.data.tracker = r.tracker;
+    closeSheet(); toast(id ? "Colloquio aggiornato" : "Colloquio salvato: preparo la tua pagina");
+    openColloquio(r.id);
+  }}, "Salva");
+  const field = (label, node, hint) => h("div", {class:"field"}, h("div", {class:"ql"}, label), hint ? h("p", {class:"hint"}, hint) : null, node);
+  openSheet(h("h2", null, id ? "Modifica il colloquio" : "Programma un colloquio"),
+    h("div", null,
+      id ? null : field("Per quale candidatura?", apps.length ? sel : h("p", {class:"hint"}, "Non hai ancora candidature."),
+        h("button", {class:"linkbtn", type:"button", style:"padding:0;min-height:0", onclick: openImport}, "Non è in elenco? Aggiungi l'annuncio con il link")),
+      field("Quando", h("div", {class:"duo"}, date, time)),
+      field("Che colloquio è", chipsOf(ROUND, "round")),
+      field("Come", chipsOf(CMODE, "mode")),
+      field("In che lingua", chipsOf(CLANG, "lang"), "Le domande della simulazione saranno in questa lingua."),
+      field("Chi ti intervista (facoltativo)", who, "Basta il ruolo: niente nomi."),
+      field("Cosa sai del colloquio (facoltativo)", notes, "Incolla qui le informazioni della mail di invito: durata, argomenti, prove."), msg),
+    h("div", {class:"actions"}, go));
+}
+
+/* preparazione automatica: ricerca sul web, ricerca in ordine, strategia, domande. Ogni passo è una chiamata breve. */
+S.prep = S.prep || {};
+const PREP_STEPS = [["web", "Cerco l'azienda sul web: sito, notizie, video, come fa i colloqui", c => c.web || c.research],
+  ["ricerca", "Metto in ordine quello che ho trovato", c => c.research], ["piano", "Preparo la tua strategia per il colloquio", c => c.plan],
+  ["domande", "Preparo le domande della simulazione", c => (c.qs || []).length]];
+async function prepare(id, only){
+  const p = S.prep[id] = {running: true, step: "", error: ""};
+  for (const [step, , done] of PREP_STEPS){
+    const c = colloqui()[id]; if (!c) return;
+    if (only ? only !== step && !(only === "ricerca" && step === "web") : done(c)) continue;
+    p.step = step; redrawColloquio(id);
+    const r = await api("colloquio_" + step, {id, cv: cvForAi()});
+    if (!r.ok){ p.error = r.error; p.running = false; redrawColloquio(id); return; }
+    if (r.colloquio) S.data.colloqui[id] = r.colloquio;
+    else if (step === "web") S.data.colloqui[id].web = r.trovati;
+    if (only === step) break;
+  }
+  p.running = false; p.step = ""; redrawColloquio(id);
+}
+function openColloquio(id){ S.tab = "int"; S.cid = id; S.csec = S.csec || "strategia"; S.qi = 0; render(); window.scrollTo(0, 0);
+  const c = colloqui()[id]; if (c && !(S.prep[id] || {}).running && PREP_STEPS.some(([, , done]) => !done(c))) prepare(id); }
+function redrawColloquio(id){ if (S.tab === "int" && S.cid === id && !sheetEl) render(); }
+function prepBox(id, c){
+  const p = S.prep[id] || {};
+  const missing = PREP_STEPS.filter(([, , done]) => !done(c));
+  if (!missing.length && !p.running) return null;
+  return h("div", {class:"prep"},
+    says("ada", "Vale", p.error ? p.error : "Sto preparando la tua pagina per questo colloquio. Ci vuole un paio di minuti: puoi restare qui o tornare dopo."),
+    h("ul", {class:"steps"}, PREP_STEPS.map(([step, label, done]) => h("li", {class: done(c) ? "done" : p.step === step ? "on" : ""}, (done(c) ? "✓ " : p.step === step ? "… " : "") + label))),
+    !p.running ? h("div", {class:"actions"}, h("button", {class:"btn solid", type:"button", onclick: () => prepare(id)}, p.error ? "Riprova" : "Prepara")) : null,
+    !store.get("cvtext", "") ? h("p", {class:"hint", style:"margin-top:10px"}, "Consiglio: carica il CV in «Profilo». Senza CV non conosco le tue esperienze e le storie da raccontare restano tracce da completare.") : null);
+}
+function speak(text, lang){
+  if (!window.speechSynthesis) return toast("Il tuo browser non sa leggere ad alta voce");
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text); u.lang = SPEECH[lang] || "en-GB"; u.rate = 0.98;
+  const v = speechSynthesis.getVoices().find(x => x.lang && x.lang.toLowerCase().startsWith(u.lang.slice(0, 2).toLowerCase())); if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+const listenBtn = (text, lang, label) => h("button", {class:"copy", type:"button", onclick: () => speak(text, lang)}, label || "🔊 Ascolta");
+const ul = (items, cls) => items && items.length ? h("ul", {class:"reasons" + (cls ? " " + cls : "")}, items.map(t => h("li", null, t))) : null;
+const csec = (title, ...kids) => h("div", {class:"kitb"}, h("div", {class:"kith"}, h("b", null, title)), ...kids);
+function secStrategia(id, c){
+  const p = c.plan; if (!p) return h("p", {class:"hint"}, "La strategia arriva tra poco.");
+  const lang = cLang(c), checks = store.get("cchk." + id, {});
+  return h("div", null,
+    p.in_breve ? says("ada", "Vale", p.in_breve) : null,
+    p.pitch ? h("div", {class:"kitb"}, h("div", {class:"kith"}, h("b", null, "«Parlami di te»: la tua presentazione"), h("span", {class:"btnrow"}, listenBtn(p.pitch, lang), copyBtn(p.pitch))),
+      h("p", {class:"kitt"}, p.pitch), h("p", {class:"hint", style:"margin-top:8px"}, "Ripetila ad alta voce finché ti viene naturale, con parole tue: 60-90 secondi.")) : null,
+    (p.perche_azienda || []).length ? csec("Perché proprio questa azienda", ul(p.perche_azienda)) : null,
+    p.percorso ? csec("Come si inserisce nel tuo percorso", h("p", {class:"kitt"}, p.percorso)) : null,
+    (p.punti_forti || []).length ? csec("I tuoi punti forti per questo ruolo", h("div", null, p.punti_forti.map(x => h("div", {class:"qa2"}, h("b", null, x.punto), h("p", {class:"kitt"}, x.prova))))) : null,
+    (p.punti_deboli || []).length ? csec("Cosa può preoccuparli, e come rispondere", h("div", null, p.punti_deboli.map(x => h("div", {class:"qa2"}, h("b", null, x.rischio), h("p", {class:"kitt"}, x.risposta))))) : null,
+    (p.storie || []).length ? csec("Storie da raccontare (metodo STAR)", h("p", {class:"hint", style:"margin:6px 0 0"}, "Situazione, Compito, Azione, Risultato. Sostituisci le parti tra [ ] con i fatti veri e controlla che ogni frase sia vera."),
+      h("div", null, p.storie.map(x => h("div", {class:"qa2"}, h("div", {class:"kith"}, h("b", null, x.titolo), listenBtn(x.star, lang)), h("p", {class:"kitt"}, x.star), x.per ? h("p", {class:"hint", style:"margin-top:6px"}, "Usala per: " + x.per) : null)))) : null,
+    (p.domande_da_fare || []).length ? csec("Domande da fare tu, alla fine", ul(p.domande_da_fare)) : null,
+    p.stipendio ? csec("Se ti chiedono la retribuzione", h("p", {class:"kitt"}, p.stipendio)) : null,
+    (p.parole_chiave || []).length ? csec("Parole da usare", h("div", {class:"tags", style:"margin-top:8px"}, p.parole_chiave.map(w => h("span", {class:"tag"}, w)))) : null,
+    (p.promemoria || []).length ? csec("Il giorno del colloquio", h("div", null, p.promemoria.map((t, i) => h("label", {class:"check"},
+      h("input", {type:"checkbox", checked: checks[i] ? true : null, onchange: e => { checks[i] = e.target.checked; store.set("cchk." + id, checks); }}), h("span", null, t))))) : null,
+    h("p", {class:"hint"}, `Preparato il ${p.creato || ""}${p.modello ? " con " + String(p.modello).replace(/^models\//, "") : ""}. Basato sul tuo profilo${store.get("cvtext", "") ? ", sul CV" : ""} e sulla ricerca sull'azienda.`),
+    h("button", {class:"linkbtn", type:"button", onclick: () => prepare(id, "piano")}, "Rifai la strategia"));
+}
+function secAzienda(id, c){
+  const r = c.research; if (!r) return h("p", {class:"hint"}, "La ricerca sull'azienda arriva tra poco.");
+  const a = r.azienda || {}, s = r.selezione || {}, j = cJob(c);
+  const link = (u, t) => /^https?:\/\//.test(u || "") ? h("a", {href: u, target:"_blank", rel:"noopener noreferrer"}, t || u.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60)) : null;
+  return h("div", null,
+    a.chi_sono ? csec(j.company || "L'azienda", h("p", {class:"kitt"}, a.chi_sono), r.sito ? h("p", {class:"hint", style:"margin-top:8px"}, "Sito: ", link(r.sito)) : null) : null,
+    (a.prodotti || []).length ? csec("Cosa vende", h("div", {class:"tags", style:"margin-top:8px"}, a.prodotti.map(w => h("span", {class:"tag"}, w)))) : null,
+    a.mercato ? csec("Clienti e mercato", h("p", {class:"kitt"}, a.mercato), (a.concorrenti || []).length ? h("p", {class:"hint", style:"margin-top:8px"}, "Concorrenti: " + a.concorrenti.join(", ")) : null) : null,
+    (a.numeri || []).length ? csec("I numeri", ul(a.numeri)) : null,
+    (a.notizie || []).length ? csec("Notizie recenti", h("ul", {class:"reasons"}, a.notizie.map(n => h("li", null, h("span", null, n.t, n.u ? [" ", link(n.u, "(fonte)")] : null))))) : null,
+    (a.cultura || []).length ? csec("Cultura e valori", ul(a.cultura), h("p", {class:"hint", style:"margin-top:8px"}, "Citali nelle risposte con esempi tuoi: è quello che chi seleziona vuole sentire.")) : null,
+    (s.fasi || []).length || (s.cosa_cercano || []).length ? csec("Come selezionano",
+      (s.fasi || []).length ? h("ol", {class:"timeline"}, s.fasi.map(t => h("li", null, t))) : null,
+      (s.cosa_cercano || []).length ? [h("p", {class:"hint", style:"margin:10px 0 4px"}, "Cosa cercano"), ul(s.cosa_cercano)] : null) : null,
+    (s.domande_riportate || []).length ? csec("Domande che hanno fatto ad altri candidati", ul(s.domande_riportate), h("p", {class:"hint", style:"margin-top:8px"}, "Le trovi anche nella simulazione.")) : null,
+    (s.consigli || []).length ? csec("Consigli per questo colloquio", ul(s.consigli)) : null,
+    (r.video || []).length ? csec("Video da guardare prima", h("div", {class:"vids"}, r.video.map(v => h("a", {class:"vid", href: "https://www.youtube.com/watch?v=" + encodeURIComponent(v.id), target:"_blank", rel:"noopener noreferrer"},
+      h("img", {src: "https://i.ytimg.com/vi/" + encodeURIComponent(v.id) + "/mqdefault.jpg", alt:"", loading:"lazy"}), h("b", null, v.t), h("span", null, [v.ch, v.len].filter(Boolean).join(" · ")), v.perche ? h("small", null, v.perche) : null)))) : null,
+    (r.non_trovato || []).length ? h("div", {class:"note"}, h("b", null, "Non trovato: "), r.non_trovato.join(" · ")) : null,
+    (r.fonti || []).length ? h("details", {class:"fonti"}, h("summary", null, `Fonti (${r.fonti.length})`), h("ul", null, r.fonti.map(u => h("li", null, link(u))))) : null,
+    h("p", {class:"hint"}, `Ricerca del ${r.creato || ""}: ${(r.trovati || {}).risultati || 0} risultati, ${(r.trovati || {}).pagine || 0} pagine lette, ${(r.trovati || {}).video || 0} video. Solo fatti trovati nelle fonti.`),
+    h("button", {class:"linkbtn", type:"button", onclick: () => { const x = colloqui()[id]; delete x.research; delete x.web; prepare(id, "ricerca"); }}, "Rifai la ricerca"));
+}
+let recog = null;
+function stopRecog(){ if (recog){ try { recog.stop(); } catch (e) {} recog = null; } }
+function secSimula(id, c){
+  const qs = c.qs || []; if (!qs.length) return h("p", {class:"hint"}, "Le domande arrivano tra poco.");
+  S.qi = Math.max(0, Math.min(S.qi || 0, qs.length - 1));
+  const q = qs[S.qi], lang = cLang(c), st = cStats(c), last = (q.prove || []).slice(-1)[0];
+  const color = x => !(x.prove || []).length ? "" : x.prove[x.prove.length - 1].voto >= 8 ? " ok" : x.prove[x.prove.length - 1].voto >= 6 ? " mid" : " low";
+  const nav = h("div", {class:"qnav", role:"tablist", "aria-label":"Domande"}, qs.map((x, i) => h("button", {type:"button", class:"qn" + color(x), "aria-current": i === S.qi ? "true" : null,
+    title: x.d, onclick: () => { stopRecog(); S.qi = i; render(); }}, String(i + 1))));
+  const draftKey = "cdraft." + id + "." + q.id;
+  const ta = h("textarea", {class:"answer", placeholder: lang === "it" ? "Rispondi come faresti al colloquio..." : "Rispondi come faresti al colloquio, in " + (CLANG[lang] || lang) + "...", "aria-label":"La tua risposta",
+    oninput: e => store.set(draftKey, e.target.value)}, store.get(draftKey, ""));
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const mic = SR ? h("button", {class:"btn mic", type:"button", onclick: () => {
+    if (recog){ stopRecog(); mic.classList.remove("rec"); mic.textContent = "🎤 A voce"; return; }
+    recog = new SR(); recog.lang = SPEECH[lang] || "en-GB"; recog.continuous = true; recog.interimResults = true;
+    const base = ta.value ? ta.value.trim() + " " : "";
+    recog.onresult = e => { let t = ""; for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; ta.value = base + t; store.set(draftKey, ta.value); };
+    recog.onend = () => { recog = null; mic.classList.remove("rec"); mic.textContent = "🎤 A voce"; };
+    recog.onerror = e => { if (e.error === "not-allowed") toast("Permetti l'uso del microfono per rispondere a voce"); };
+    try { recog.start(); mic.classList.add("rec"); mic.textContent = "⏹ Fine"; } catch (e) { toast("Microfono non disponibile"); recog = null; }
+  }}, "🎤 A voce") : null;
+  const send = h("button", {class:"btn solid", type:"button", onclick: async () => {
+    stopRecog(); const answer = ta.value.trim();
+    if (answer.length < 3){ toast("Scrivi o detta la tua risposta"); return; }
+    send.disabled = true; send.textContent = "Vale sta valutando...";
+    const r = await api("colloquio_risposta", {id, qid: q.id, answer, cv: cvForAi()});
+    send.disabled = false; send.textContent = "Valuta la risposta";
+    if (!r.ok){ toast(r.error); return; }
+    S.data.colloqui[id] = r.colloquio; store.del(draftKey); render();
+    requestAnimationFrame(() => { const fb = document.querySelector(".feedback"); if (fb) fb.scrollIntoView({behavior:"smooth", block:"start"}); });
+  }}, "Valuta la risposta");
+  const fb = last ? h("div", {class:"feedback"},
+    h("div", {class:"score"}, h("b", {class: last.voto >= 8 ? "ok" : last.voto >= 6 ? "mid" : "low"}, String(last.voto)), h("span", null, "su 10"), h("p", null, last.giudizio)),
+    masc ? h("div", {class:"says", style:"margin:12px 0 0"}, masc("ada"), h("div", {class:"bubble"}, h("b", null, "Vale"),
+      (last.bene || []).length ? [h("div", {class:"fbh"}, "Cosa funziona"), ul(last.bene)] : null,
+      (last.migliora || []).length ? [h("div", {class:"fbh"}, "Cosa migliorare"), ul(last.migliora, "warnl")] : null)) : null,
+    last.risposta_migliore ? h("div", {class:"kitb"}, h("div", {class:"kith"}, h("b", null, "Come potresti rispondere"), h("span", {class:"btnrow"}, listenBtn(last.risposta_migliore, lang), copyBtn(last.risposta_migliore))),
+      h("p", {class:"kitt"}, last.risposta_migliore), h("p", {class:"hint", style:"margin-top:8px"}, "Non va imparata a memoria: prendi la struttura e dilla con parole tue. Le parti tra [ ] sono da completare con fatti veri.")) : null,
+    last.rilancio ? h("div", {class:"kitb"}, h("div", {class:"kith"}, h("b", null, "Tina potrebbe insistere così")), h("p", {class:"kitt"}, last.rilancio),
+      h("button", {class:"btn", type:"button", style:"margin-top:8px;width:100%", onclick: async e => {
+        e.target.disabled = true; const r = await api("colloquio_risposta", {id, qid: q.id, nuova: last.rilancio});
+        if (!r.ok){ e.target.disabled = false; return toast(r.error); }
+        S.data.colloqui[id] = r.colloquio; S.qi = r.colloquio.qs.findIndex(x => x.id === r.qid); render(); window.scrollTo(0, 0); }}, "Rispondi a questa domanda")) : null,
+    (q.prove || []).length > 1 ? h("details", {class:"fonti"}, h("summary", null, `Le tue risposte precedenti (${q.prove.length - 1})`),
+      q.prove.slice(0, -1).reverse().map(x => h("div", {class:"qa2"}, h("b", null, `Voto ${x.voto} · ${x.t || ""}`), h("p", {class:"kitt"}, x.risposta))))
+      : null) : null;
+  return h("div", null,
+    h("div", {class:"simtop"}, h("span", null, `Domanda ${S.qi + 1} di ${qs.length}`), st.done ? h("span", null, `Risposte: ${st.done} · voto medio ${st.avg.toFixed(1).replace(".", ",")}`) : null),
+    nav,
+    h("div", {class:"qcard"},
+      h("div", {class:"says", style:"margin:0"}, masc("vaglio"), h("div", {class:"bubble"}, h("b", null, "Tina, selezionatrice"), h("p", {class:"qtext"}, q.d))),
+      h("div", {class:"tags", style:"margin-top:10px"}, h("span", {class:"tag"}, QTYPE[q.tipo] || q.tipo), q.online ? h("span", {class:"tag pref"}, "Fatta davvero ad altri candidati") : null),
+      h("div", {class:"btnrow", style:"margin-top:10px"}, listenBtn(q.d, lang, "🔊 Ascolta la domanda")),
+      q.it ? h("details", {class:"hintd"}, h("summary", null, "Traduzione"), h("p", null, q.it)) : null,
+      q.perche ? h("details", {class:"hintd"}, h("summary", null, "Perché te la fanno"), h("p", null, q.perche)) : null,
+      q.traccia ? h("details", {class:"hintd"}, h("summary", null, "Un aiutino"), h("p", null, q.traccia)) : null),
+    h("div", {class:"field"}, ta),
+    h("div", {class:"duo", style:"margin-top:10px"}, mic, send),
+    !SR ? h("p", {class:"hint", style:"margin-top:8px"}, "Per rispondere a voce usa il microfono della tastiera del telefono (dettatura).") : null,
+    fb,
+    h("div", {class:"duo", style:"margin-top:16px"},
+      h("button", {class:"btn", type:"button", disabled: S.qi === 0 ? true : null, onclick: () => { stopRecog(); S.qi--; render(); window.scrollTo(0, 0); }}, "← Precedente"),
+      S.qi < qs.length - 1 ? h("button", {class:"btn", type:"button", onclick: () => { stopRecog(); S.qi++; render(); window.scrollTo(0, 0); }}, "Prossima →")
+        : h("button", {class:"btn", type:"button", onclick: async e => { e.target.disabled = true; e.target.textContent = "Tina prepara altre domande...";
+            const r = await api("colloquio_domande", {id, more: true, cv: cvForAi()}); if (!r.ok){ e.target.disabled = false; e.target.textContent = "Altre domande, più difficili"; return toast(r.error); }
+            S.data.colloqui[id] = r.colloquio; S.qi++; render(); window.scrollTo(0, 0); }}, "Altre domande, più difficili")),
+    h("button", {class:"linkbtn", type:"button", onclick: () => { if (confirm("Rifare tutte le domande da capo? Le tue risposte a queste domande si perdono.")) { const x = colloqui()[id]; x.qs = []; S.qi = 0; prepare(id, "domande"); } }}, "Rifai le domande da capo"));
+}
+function secDopo(id, c){
+  const v = {after: c.after || "", esito: c.esito || ""};
+  const ta = h("textarea", {class:"answer", placeholder:"Che domande ti hanno fatto? Cosa è andato bene, cosa no? Cosa ti hanno detto dei prossimi passi?", oninput: e => { v.after = e.target.value; }}, v.after);
+  const box = h("div", {class:"wrap"}); const draw = () => box.replaceChildren(...Object.entries(ESITO).map(([k, t]) => h("button", {class:"chip", type:"button", "aria-pressed": String(v.esito === k), onclick: () => { v.esito = k; draw(); }}, t))); draw();
+  const save = h("button", {class:"btn solid", type:"button", onclick: async () => {
+    save.disabled = true; const r = await api("colloquio", {id, after: v.after, esito: v.esito}); save.disabled = false;
+    if (!r.ok) return toast(r.error);
+    S.data.colloqui = r.colloqui; if (r.tracker) S.data.tracker = r.tracker; toast("Salvato: ne terrò conto per il prossimo colloquio"); render();
+  }}, "Salva");
+  return h("div", null,
+    says("ada", "Vale", "Subito dopo il colloquio, finché te lo ricordi bene, scrivi qui com'è andata. Se ti chiamano per il giro successivo, preparo il prossimo colloquio partendo da qui."),
+    h("div", {class:"field"}, ta), h("div", {class:"field"}, h("div", {class:"ql"}, "Com'è finita"), box),
+    h("div", {class:"actions"}, save),
+    c.esito === "avanti" ? h("div", {class:"actions"}, h("button", {class:"btn", type:"button", onclick: () => openSchedule(null, c.key, c.round === "hr" ? "manager" : "finale")}, "Programma il prossimo colloquio")) : null);
+}
+function viewColloquio(id){
+  const c = colloqui()[id];
+  if (!c){ S.cid = null; return viewColloqui(); }
+  const j = cJob(c), sec = S.csec || "strategia";
+  const tabs = [["strategia", "Strategia"], ["azienda", "Azienda"], ["simula", "Simulazione"], ["dopo", "Dopo"]];
+  const body = {strategia: secStrategia, azienda: secAzienda, simula: secSimula, dopo: secDopo}[sec](id, c);
+  return h("div", {class:"cwrap"},
+    h("button", {class:"linkbtn", type:"button", style:"padding:0", onclick: () => { stopRecog(); S.cid = null; render(); }}, "← Tutti i colloqui"),
+    h("section", {class:"chead"},
+      h("div", {class:"eyebrow"}, [whenLabel(c), ROUND[c.round], CMODE[c.mode]].filter(Boolean).join(" · ")),
+      h("h1", null, j.title_it || j.title || "Colloquio"),
+      h("div", {class:"co"}, [j.company, place(j)].filter(Boolean).join(" · ")),
+      h("div", {class:"wrap", style:"margin-top:12px"},
+        h("button", {class:"chip", type:"button", onclick: () => openSchedule(id)}, "Modifica"),
+        favs()[c.key] ? h("button", {class:"chip", type:"button", onclick: () => openApp(c.key)}, "L'annuncio e la candidatura") : null,
+        h("button", {class:"chip", type:"button", onclick: async () => { if (!confirm("Cancellare questo colloquio e la sua preparazione?")) return;
+          const r = await api("colloquio", {id, delete: true}); if (!r.ok) return toast(r.error); S.data.colloqui = r.colloqui; S.cid = null; render(); }}, "Cancella"))),
+    prepBox(id, c),
+    h("div", {class:"chips ctabs", role:"tablist"}, tabs.map(([k, t]) => h("button", {class:"chip", type:"button", role:"tab", "aria-pressed": String(sec === k),
+      onclick: () => { stopRecog(); S.csec = k; render(); window.scrollTo(0, 0); }}, t))),
+    body);
 }
 
 /* ---------- attesa e aggiornamento ---------- */
