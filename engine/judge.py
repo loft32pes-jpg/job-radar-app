@@ -70,7 +70,7 @@ def _models():
         url += "" if url.endswith("/chat/completions") else "/chat/completions"
         import ai as ai_mod
         for m in p.get("judge_models") or p.get("models") or ai_mod.models_of(p):
-            out.append(((url, p["api_key"]), m))
+            out.append(((url, p.get("api_key") or ""), m))  # i servizi senza chiave non hanno "api_key"
     return bool(out), out
 
 
