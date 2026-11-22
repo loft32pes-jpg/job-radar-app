@@ -11,7 +11,7 @@ import os
 import secrets
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from http.server import BaseHTTPRequestHandler
 from urllib.error import HTTPError
 from urllib.parse import parse_qs, quote, urlparse
@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _candidature as cand  # noqa: E402
 import _colloqui as coll  # noqa: E402
+import _mercato as merc  # noqa: E402
 
 REPO = os.environ.get("JR_REPO", "loft32pes-jpg/job-radar")              # repo PRIVATO con i dati (ramo "dati")
 RUN_REPO = os.environ.get("JR_RUN_REPO", "loft32pes-jpg/job-radar-app")  # repo PUBBLICO del codice: lì gira la ricerca
@@ -110,7 +111,8 @@ def start_search(uid):
                    {"ref": "main", "inputs": {"utente": uid}})
     if status != 204:
         raise Fail("Non sono riuscito ad avviare la ricerca. Riprova tra qualche minuto.", 503)
-    write(f"utenti/{uid}/stato.json", {"running": True, "queued": True,
+    fails = (read(f"utenti/{uid}/stato.json", {}) or {}).get("fails")
+    write(f"utenti/{uid}/stato.json", {"running": True, "queued": True, **({"fails": fails} if fails else {}),
                                        "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}, "Ricerca richiesta")
 
 
@@ -126,9 +128,9 @@ def minutes_since(iso):
 
 
 def clean_state(st):
-    """Una ricerca "in corso" da più di 65 minuti si è persa per strada: non si lascia l'app bloccata ad aspettare."""
+    """Una ricerca "in corso" da più di 85 minuti si è persa per strada: non si lascia l'app bloccata ad aspettare."""
     st = st or {"running": False}
-    if st.get("running") and minutes_since(st.get("started_at")) > 65:
+    if st.get("running") and minutes_since(st.get("started_at")) > 85:
         st = {"running": False, "ok": False, "error": "L'ultima ricerca non è arrivata in fondo. Riprova."}
     return st
 
@@ -160,9 +162,9 @@ def a_entra(body, _uid):
 
 def a_dati(_body, uid):
     paths = ["utenti/index.json", f"utenti/{uid}/profilo.json", f"utenti/{uid}/risultati.json", f"utenti/{uid}/stato.json",
-             f"utenti/{uid}/preferiti.json", f"utenti/{uid}/imparato.json", f"utenti/{uid}/colloqui.json"]
-    with ThreadPoolExecutor(7) as ex:
-        users, prof, res, st, fav, lr, cl = ex.map(read, paths)
+             f"utenti/{uid}/preferiti.json", f"utenti/{uid}/imparato.json", f"utenti/{uid}/colloqui.json", f"utenti/{uid}/aziende.json"]
+    with ThreadPoolExecutor(8) as ex:
+        users, prof, res, st, fav, lr, cl, az = ex.map(read, paths)
     import learn
     for url, f in ((fav or {}).get("favs") or {}).items():
         f["state"] = cand.OLD_STATES.get(f.get("state"), f.get("state") or "interested")
@@ -185,8 +187,26 @@ def a_dati(_body, uid):
                    "learned": learn.view(lr)}
     res = res or {}
     return {"name": users[uid].get("name", ""), "profile": summary, "run": res.get("run"), "families": res.get("families") or {},
-            "jobs": res.get("jobs") or [], "state": clean_state(st), "tracker": fav or {}, "colloqui": (cl or {}).get("list") or {},
+            "jobs": res.get("jobs") or [], "state": clean_state(st), "tracker": _slim(fav or {}), "colloqui": _slim_c((cl or {}).get("list") or {}), "mercato": _merc_view(az),
             "token": make_token(uid)}  # l'accesso si rinnova a ogni apertura: chi usa l'app non deve mai rientrare
+
+
+def _slim(t):
+    """Bacheca senza il testo completo degli annunci (un terzo dei dati): si carica solo quando si apre la candidatura."""
+    out = dict(t)
+    out["favs"] = {k: dict({x: v for x, v in f.items() if x != "jd"}, has_jd=bool(f.get("jd"))) for k, f in (t.get("favs") or {}).items()}
+    return out
+
+
+def _slim_c(cl):
+    """Colloqui senza i risultati grezzi della ricerca sul web (servono solo al server)."""
+    return {k: dict({x: v for x, v in c.items() if x != "web"}, **({"web": {"ok": 1}} if c.get("web") else {})) for k, c in cl.items()}
+
+
+def a_testo(body, uid):
+    """Testo completo di un annuncio in bacheca."""
+    f = _tracker(uid)["favs"].get(str(body.get("key") or "")[:400]) or {}
+    return {"jd": f.get("jd") or ""}
 
 
 def a_stato(_body, uid):
@@ -747,10 +767,126 @@ def a_colloquio_risposta(body, uid):
     return {"colloquio": c}
 
 
+# ---------- mercato nascosto: aziende che probabilmente assumono nei suoi ruoli senza averlo pubblicato ----------
+def _merc(uid):
+    return read(f"utenti/{uid}/aziende.json", {}) or {}
+
+
+def _places(prof):
+    return (prof.get("answers") or {}).get("places") or []
+
+
+def a_mercato_cerca(body, uid):
+    """Passo 1: segnali dalle notizie delle sue città e aziende che assumono lì per altri ruoli."""
+    import learn
+    prof = read(f"utenti/{uid}/profilo.json", {}) or {}
+    places = _places(prof)
+    if not places:
+        raise Fail("Aggiungi almeno una città in «Profilo»: il mercato nascosto si cerca nelle tue città.")
+    with ThreadPoolExecutor(2) as ex:
+        fn = ex.submit(merc.news_signals, places)
+        fr = ex.submit(read, f"utenti/{uid}/risultati.json", {})
+        news, res = fn.result(), fr.result() or {}
+    m = _merc(uid)
+    m["raw"] = {"news": news, "archivio": merc.archive_companies(res.get("jobs") or [], learn.AGENCY), "at": time.strftime("%Y-%m-%d %H:%M")}
+    write(f"utenti/{uid}/aziende.json", m, "Mercato nascosto: segnali")
+    return {"notizie": len(news), "aziende": len(m["raw"]["archivio"])}
+
+
+def a_mercato_analisi(body, uid):
+    """Passo 2: l'AI sceglie le aziende più promettenti (solo tra quelle trovate) e dice come proporsi."""
+    import ai
+    prof = read(f"utenti/{uid}/profilo.json", {}) or {}
+    m = _merc(uid)
+    raw = m.get("raw") or {}
+    news, arch = raw.get("news") or [], raw.get("archivio") or []
+    have = {str((f.get("job") or {}).get("company") or "").lower() for f in _tracker(uid)["favs"].values()} - {""}
+    user = (cand.person_text(prof, "") + "\nSue città: " + ", ".join(p.get("typed") or p["name"] for p in _places(prof))
+            + "\nSettori esclusi: " + str((prof.get("answers") or {}).get("avoid") or "nessuno")
+            + "\nAziende che ha già in bacheca (non proporle): " + ", ".join(sorted(have))[:1500]
+            + "\n\nNOTIZIE RECENTI\n" + "\n".join(f"[{i}] {n['d']} · {n['citta']} · {n['t']}" for i, n in enumerate(news))[:14000]
+            + "\n\nAZIENDE CON ANNUNCI NELLE SUE CITTÀ (altri ruoli)\n"
+            + "\n".join(f"- {name} ({v['citta']}): {v['n']} annunci, es. {'; '.join(v['titoli'])}" for name, v in arch)[:6000])
+    try:
+        data, model = ai.write_json(merc.SYSTEM, user, _writing_order(), budget_s=52)
+    except Exception as e:
+        raise Fail("L'AI non risponde in questo momento. Riprova tra un minuto.", 503) from e
+    old = {a["nome"].lower(): a for a in m.get("aziende") or []}
+    new = merc.clean(data, news, [a[0] for a in arch], have)
+    for a in new:  # quello già verificato o scritto resta
+        for k in ("sito", "carriere", "ats", "slug", "annunci", "msg", "verificata"):
+            if k in old.get(a["nome"].lower(), {}):
+                a[k] = old[a["nome"].lower()][k]
+    m.update({"aziende": new, "at": time.strftime("%Y-%m-%d %H:%M"), "modello": model})
+    write(f"utenti/{uid}/aziende.json", m, "Mercato nascosto")
+    return {"mercato": _merc_view(m)}
+
+
+def _merc_view(m):
+    return {k: v for k, v in (m or {}).items() if k != "raw"}
+
+
+def a_mercato_verifica(body, uid):
+    """Passo 3: per alcune aziende, sito carriere e annunci aperti. Se hanno un sito carriere leggibile, la ricerca lo legge
+    da adesso a ogni giro (board.json)."""
+    import learn
+    import rules
+    prof = read(f"utenti/{uid}/profilo.json", {}) or {}
+    prof["learned"] = read(f"utenti/{uid}/imparato.json", {}) or {}
+    rules.configure(learn.apply(prof))
+    m = _merc(uid)
+    az = m.get("aziende") or []
+    todo = [a for a in az if not a.get("verificata")][:int(body.get("n") or 4)]
+
+    def one(a):
+        c = merc.careers(a["nome"])
+        a.update({k: v for k, v in c.items() if v})
+        if c.get("ats"):
+            a["annunci"] = merc.open_jobs(c["ats"], c["slug"], a["nome"], rules.classify)
+        a["verificata"] = True
+    with ThreadPoolExecutor(4) as ex:
+        wait([ex.submit(one, a) for a in todo], timeout=45)
+    for a in todo:
+        a["verificata"] = True
+    boards = read(f"utenti/{uid}/board.json", []) or []
+    have = {(b["ats"], b["slug"].lower()) for b in boards}
+    for a in todo:
+        if a.get("ats") and a.get("annunci") is not None and (a["ats"], a["slug"].lower()) not in have:
+            boards.append({"name": a["nome"], "ats": a["ats"], "slug": a["slug"], "domain": urlparse(a.get("sito") or "").netloc})
+    write(f"utenti/{uid}/board.json", boards[-150:], "Siti carriere da leggere")
+    write(f"utenti/{uid}/aziende.json", m, "Mercato nascosto: verifica")
+    return {"mercato": _merc_view(m), "rimaste": sum(1 for a in az if not a.get("verificata"))}
+
+
+def a_mercato_messaggio(body, uid):
+    """Candidatura spontanea (email e messaggio LinkedIn) per un'azienda del mercato nascosto."""
+    import ai
+    m = _merc(uid)
+    az = m.get("aziende") or []
+    try:
+        a = az[int(body.get("i"))]
+    except (TypeError, ValueError, IndexError):
+        raise Fail("Azienda non trovata.")
+    prof = read(f"utenti/{uid}/profilo.json", {}) or {}
+    user = (cand.person_text(prof, str(body.get("cv") or "")) + f"\n\nAZIENDA: {a['nome']} ({a.get('citta', '')}), settore {a.get('settore', '')}"
+            f"\nSegnale: {a.get('segnale', '')}\nRuolo da proporre: {a.get('ruolo', '')}\nA chi scrivere: {a.get('contatto', '')}"
+            + (f"\nSito: {a['sito']}" if a.get("sito") else ""))
+    try:
+        data, model = ai.write_json(merc.MSG_SYSTEM, user, _writing_order(), budget_s=48)
+    except Exception as e:
+        raise Fail("L'AI non risponde in questo momento. Riprova tra un minuto.", 503) from e
+    a["msg"] = {"lingua": coll._s(data.get("lingua"), 5), "oggetto": coll._s(data.get("oggetto"), 200), "email": coll._s(data.get("email"), 2500),
+                "linkedin": coll._s(data.get("linkedin"), 400), "modello": model, "creato": time.strftime("%Y-%m-%d")}
+    write(f"utenti/{uid}/aziende.json", m, "Mercato nascosto: candidatura spontanea")
+    return {"mercato": _merc_view(m)}
+
+
 ACTIONS = {"login": a_login, "entra": a_entra, "citta": a_citta, "impara": a_impara, "importa": a_importa, "avvisi": a_avvisi, "dati": a_dati, "stato": a_stato, "intervista": a_intervista, "profilo": a_profilo,
-           "aggiorna": a_aggiorna, "preferito": a_preferito, "luogo": a_luogo, "kit": a_kit, "compila": a_compila, "preferenze": a_preferenze,
+           "aggiorna": a_aggiorna, "preferito": a_preferito, "luogo": a_luogo, "kit": a_kit, "compila": a_compila, "preferenze": a_preferenze, "testo": a_testo,
            "colloquio": a_colloquio, "colloquio_web": a_colloquio_web, "colloquio_ricerca": a_colloquio_ricerca, "colloquio_piano": a_colloquio_piano,
-           "colloquio_domande": a_colloquio_domande, "colloquio_risposta": a_colloquio_risposta}
+           "colloquio_domande": a_colloquio_domande, "colloquio_risposta": a_colloquio_risposta,
+           "mercato_cerca": a_mercato_cerca, "mercato_analisi": a_mercato_analisi, "mercato_verifica": a_mercato_verifica,
+           "mercato_messaggio": a_mercato_messaggio}
 
 
 def handle(action, body, token):

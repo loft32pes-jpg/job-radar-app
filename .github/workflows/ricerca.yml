@@ -87,7 +87,7 @@ jobs:
     needs: elenco
     if: needs.elenco.outputs.utenti != '[]'
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 70
     # una sola ricerca alla volta per persona: una seconda (cron in ritardo + lancio dall'app) aspetta la fine della prima
     concurrency:
       group: persona-${{ matrix.utente }}
@@ -123,14 +123,18 @@ jobs:
             echo "salta=1" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "{\"running\":true,\"started_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "utenti/${{ matrix.utente }}/stato.json"
+          # in corso; si tiene il conto delle ricerche fallite di fila (serve all'avviso per chi amministra)
+          python3 -c "import json,datetime; p='utenti/${{ matrix.utente }}/stato.json'
+          try: f=int(json.load(open(p)).get('fails') or 0)
+          except Exception: f=0
+          json.dump({'running': True, 'started_at': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), **({'fails': f} if f else {})}, open(p, 'w'))"
           git add -A && git commit -q -m "Ricerca avviata" || true
           for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break || sleep 4; done
       - name: Ricerca
         if: steps.segna.outputs.salta != '1'
         env:
           JR_CONFIG: ${{ secrets.JR_CONFIG }}
-          JR_LI_MINUTES: "30"
+          JR_LI_MINUTES: "45"
           JR_LI_SHARE: "0.6"
         run: python engine/ci_run.py "${{ matrix.utente }}"
       - name: Salva i risultati
@@ -138,7 +142,7 @@ jobs:
         working-directory: dati
         run: |
           if grep -q '"running":true' "utenti/${{ matrix.utente }}/stato.json"; then
-            echo "{\"running\":false,\"ok\":false,\"error\":\"La ricerca si è interrotta. Riprova tra qualche minuto.\"}" > "utenti/${{ matrix.utente }}/stato.json"
+            python3 -c "import json,sys; p='utenti/${{ matrix.utente }}/stato.json'; s=json.load(open(p)); json.dump({'running': False, 'ok': False, 'error': 'La ricerca si è interrotta. Riprova tra qualche minuto.', 'fails': int(s.get('fails') or 0) + 1, 'detail': 'interrotta (tempo scaduto)'}, open(p, 'w'), ensure_ascii=False)"
           fi
           git add -A && git commit -q -m "Risultati ricerca" || true
           # se nel frattempo il ramo è cambiato sugli stessi file vince il risultato di questa ricerca; se non si riesce a salvare
@@ -150,3 +154,7 @@ jobs:
             sleep 5
           done
           [ -n "$salvato" ] || { echo "Risultati non salvati"; exit 1; }
+      - name: Avvisa chi amministra se le ricerche continuano a fallire
+        if: failure() && steps.segna.outputs.salta != '1'
+        working-directory: dati
+        run: python3 ../engine/allarme.py "${{ matrix.utente }}"

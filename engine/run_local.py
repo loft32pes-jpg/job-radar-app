@@ -59,6 +59,27 @@ def title_ok(title: str) -> bool:
     return rules.classify(title) is not None
 
 
+def _near(result, places, km=40):
+    """Annunci dei siti carriere: quelli nelle città della persona valgono come "vicino casa" (finestra di una settimana)."""
+    jobs, meta = result
+    if not places:
+        return jobs, meta
+    import math
+    import geo
+    for j in jobs:
+        country = rules.infer_country(j.get("location") or "")
+        hit = geo.locate("", country, j.get("location") or "") if country else None
+        if not hit or hit[2] != "city":
+            continue
+        for p in places:
+            r = math.pi / 180
+            a = math.sin((hit[0] - p["lat"]) * r / 2) ** 2 + math.cos(p["lat"] * r) * math.cos(hit[0] * r) * math.sin((hit[1] - p["lon"]) * r / 2) ** 2
+            if 12742 * math.asin(math.sqrt(a)) <= km:
+                j["near"] = p["name"]
+                break
+    return jobs, meta
+
+
 def run(hours: int = 24, log=print, do_notify: bool = False):
     """Esegue la ricerca completa e riscrive archivio e pagina. Ritorna un riepilogo."""
     try:  # il computer non deve andare in sospensione a metà ricerca (vale finché Job Radar è aperto)
@@ -112,7 +133,7 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
         ("EURES (portale UE)", lambda: sources_more.fetch_eures(since, eures_kw)),
         ("Board remote", lambda: sources_more.fetch_remote_boards(since)),
         ("Jooble", lambda: sources_more.fetch_jooble(cfg.get("jooble", {}), queries, since)),
-        ("Board aziendali", lambda: sources.fetch_boards(since)),
+        ("Siti carriere delle aziende", lambda: _near(sources.fetch_boards(since), places)),
     ]
     if places:
         steps.insert(0, ("Talent.com (vicino a " + ", ".join(p["name"] for p in places) + ")",

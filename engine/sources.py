@@ -230,8 +230,18 @@ def ats_recruitee(slug):
                    strip_html((r.get("description") or "") + " " + (r.get("requirements") or "")))
 
 
+def ats_teamtailor(slug):
+    """Teamtailor: lo "slug" è l'indirizzo del sito carriere (es. https://careers.azienda.com o https://azienda.teamtailor.com)."""
+    base = slug if slug.startswith("http") else f"https://{slug}.teamtailor.com"
+    page = _open(base.rstrip("/") + "/jobs.rss", "application/rss+xml")
+    for item in re.findall(r"<item>(.*?)</item>", page, re.S):
+        g = lambda tag: html.unescape(re.sub(r"<!\[CDATA\[|\]\]>", "", (re.search(rf"<{tag}[^>]*>(.*?)</{tag}>", item, re.S) or [None, ""])[1])).strip()  # noqa: E731
+        loc = " ".join(re.findall(r"<tt:(?:city|name|location)[^>]*>(.*?)</tt:", item)) or g("location")
+        yield make(g("title"), slug, loc, g("link"), "Teamtailor", parse_dt(g("pubDate")), strip_html(g("description")))
+
+
 ATS = {"greenhouse": ats_greenhouse, "lever": ats_lever, "ashby": ats_ashby, "workable": ats_workable, "personio": ats_personio,
-       "smartrecruiters": ats_smartrecruiters, "recruitee": ats_recruitee}
+       "smartrecruiters": ats_smartrecruiters, "recruitee": ats_recruitee, "teamtailor": ats_teamtailor}
 
 
 def favicon(domain: str) -> str:
@@ -254,7 +264,12 @@ def _company(entry):
 
 
 def fetch_boards(since):
-    companies = read_json(DATA / "companies.json", [])
+    # aziende fisse (grandi tech europee) + quelle trovate per la persona nel "mercato nascosto" (siti carriere delle sue città)
+    companies, seen = [], set()
+    for c in read_json(DATA / "companies.json", []) + read_json(DATA / "board_personali.json", []):
+        if c.get("ats") in ATS and c.get("slug") and (c["ats"], c["slug"].lower()) not in seen:
+            seen.add((c["ats"], c["slug"].lower()))
+            companies.append(c)
     jobs, dead = [], []
     with ThreadPoolExecutor(max_workers=8) as ex:
         for res, err in ex.map(_company, companies):

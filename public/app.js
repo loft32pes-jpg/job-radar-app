@@ -79,11 +79,11 @@ function linkBox(){
     h("div", {class:"actions", style:"flex-wrap:wrap"}, copy, share));
 }
 function logout(expired){
-  if (expired){ S.token = null; S.data = null; store.del("token"); stopPoll(); closeSheet(); return viewLogin("L'accesso su questo dispositivo è scaduto: apri il tuo link personale, oppure ricomincia."); }
+  if (expired){ S.token = null; S.data = null; store.del("token"); idb.set("cache", null).catch(() => {}); stopPoll(); closeSheet(); return viewLogin("L'accesso su questo dispositivo è scaduto: apri il tuo link personale, oppure ricomincia."); }
   openSheet(h("h2", null, "Uscire da Job Radar?"),
     h("div", null, h("p", {class:"lead"}, "Per rientrare con il tuo profilo ti servirà il tuo link personale. Copialo prima di uscire, se non l'hai già."), linkBox()),
     h("div", {class:"actions"}, h("button", {class:"btn", type:"button", onclick: closeSheet}, "Resto"),
-      h("button", {class:"btn solid", type:"button", onclick: () => { S.token = null; S.data = null; store.del("token"); stopPoll(); closeSheet(); viewLogin(""); }}, "Esci")));
+      h("button", {class:"btn solid", type:"button", onclick: () => { S.token = null; S.data = null; store.del("token"); idb.set("cache", null).catch(() => {}); stopPoll(); closeSheet(); viewLogin(""); }}, "Esci")));
 }
 function viewLogin(message){
   const inp = h("input", {type:"text", id:"name", autocomplete:"given-name", maxlength:"40", placeholder:"Il tuo nome", "aria-label":"Come ti chiami"});
@@ -123,10 +123,17 @@ async function boot(){
   const fromLink = /^#t=(.+)$/.exec(location.hash);  // link personale aperto su un altro dispositivo
   if (fromLink){ S.token = decodeURIComponent(fromLink[1]); store.set("token", S.token); history.replaceState(null, "", location.pathname); }
   if (!S.token) return viewLogin();
-  $app.replaceChildren(h("main", null, h("div", {class:"center"}, h("div", {class:"radarbox", html: radarSvg()}), h("p", {class:"lead", style:"text-align:center"}, "Carico i tuoi annunci..."))));
+  // apertura istantanea: si mostra subito l'ultima copia salvata su questo dispositivo, intanto arrivano i dati freschi
+  const me_ = String(S.token).split(".")[0], cached = await idb.get("cache");
+  const fromCache = !!(cached && cached.uid === me_ && cached.data && cached.data.profile);
+  if (fromCache){ S.data = cached.data; render(); }
+  else $app.replaceChildren(h("main", null, h("div", {class:"center"}, h("div", {class:"radarbox", html: radarSvg()}), h("p", {class:"lead", style:"text-align:center"}, "Carico i tuoi annunci..."))));
   const r = await api("dati");
-  if (!r.ok){ if (S.token) $app.replaceChildren(h("main", null, h("div", {class:"center"}, h("p", {class:"lead"}, r.error), h("button", {class:"btn solid", onclick: boot}, "Riprova")))); return; }
+  if (!r.ok){ if (fromCache){ toast("Non riesco ad aggiornare: ti mostro gli ultimi annunci scaricati"); return; }
+    if (S.token) $app.replaceChildren(h("main", null, h("div", {class:"center"}, h("p", {class:"lead"}, r.error), h("button", {class:"btn solid", onclick: boot}, "Riprova")))); return; }
   S.data = r;
+  idb.set("cache", {uid: me_, data: r}).catch(() => {});
+  if (fromCache && (sheetEl || recog)) return;  // non si cambia lo schermo sotto le mani di chi sta scrivendo o parlando
   if (r.token){ S.token = r.token; store.set("token", r.token); }  // accesso rinnovato a ogni apertura
   if (!r.profile) return viewInterview();
   render();
@@ -136,16 +143,16 @@ function shell(content){
   const run = S.data.state && S.data.state.running;
   const refresh = h("button", {class:"pill" + (run ? " busy" : ""), type:"button", onclick: refreshNow, html: ICON.refresh + "<span>" + (run ? "Ricerca in corso" : "Aggiorna") + "</span>"});
   const nApps = Object.values(favs()).filter(f => f.state !== "discarded").length;
-  const tab = (id, icon, label, count) => h("button", {type:"button", "aria-current": S.tab === id ? "page" : null, onclick: () => { stopRecog(); if (id === "int") S.cid = null; S.tab = id; S.shown = 40; render(); window.scrollTo(0, 0); }, html: icon},
+  const tab = (id, icon, label, count) => h("button", {type:"button", "aria-current": S.tab === id ? "page" : null, onclick: () => { stopRecog(); if (id === "int") S.cid = null; S.merc = false; S.tab = id; S.shown = 40; render(); window.scrollTo(0, 0); }, html: icon},
     h("span", null, label, count ? h("span", {class:"count"}, " " + count) : null));
   $app.replaceChildren(
     h("header", {class:"top"}, h("div", {class:"brand", html: ICON.logo + "<span>Job Radar</span>"}), refresh),
-    h("main", {class: S.tab === "favs" ? "wide" : null}, content),
+    h("main", {class: S.tab === "favs" && !S.merc ? "wide" : null}, content),
     h("nav", {class:"tabs", "aria-label":"Sezioni"}, tab("jobs", ICON.list, "Annunci"), tab("favs", ICON.board, "Candidature", nApps),
       tab("int", ICON.mic, "Colloqui", Object.values(colloqui()).filter(c => !isPast(c)).length + Object.entries(favs()).filter(([k, f]) => f.state === "interview" && !Object.values(colloqui()).some(c => c.key === k)).length), tab("me", ICON.user, "Profilo")));
 }
 function render(){
-  if (S.tab === "favs") return shell(viewApps());
+  if (S.tab === "favs") return shell(S.merc ? viewMercato() : viewApps());
   if (S.tab === "me") return shell(viewMe());
   if (S.tab === "int") return shell(S.cid ? viewColloquio(S.cid) : viewColloqui());
   shell(S.data.state && S.data.state.running && !S.data.jobs.length ? viewWaiting() : viewJobs());
@@ -270,7 +277,7 @@ async function saveCities(list, btn, search){
   if (btn) btn.disabled = false;
   if (!r.ok){ toast(r.error); return false; }
   const a = S.data.profile.answers; a.places = r.places; a.cities = r.places.map(p => p.typed);
-  if (r.started){ S.data.state = {running: true, started_at: new Date().toISOString()}; startPoll(); toast("Ricerca avviata: tra circa mezz'ora trovi i nuovi annunci"); }
+  if (r.started){ S.data.state = {running: true, started_at: new Date().toISOString()}; startPoll(); toast("Ricerca avviata: tra circa 50 minuti trovi i nuovi annunci"); }
   else toast(search ? "Salvato: la cerco alla prossima ricerca (l'ultima è di poco fa)" : "Salvato: vale dalla prossima ricerca");
   render(); return true;
 }
@@ -402,13 +409,13 @@ function openImport(){
 function viewApps(){
   const all = Object.entries(favs());
   const addBtn = h("button", {class:"pill", type:"button", onclick: openImport}, "+ Aggiungi un annuncio trovato altrove");
-  if (!all.length) return h("div", {class:"center"}, says("ada", "Vale", "Qui tieni traccia delle tue candidature. Negli annunci tocca la stella o «Mi interessa»: l'annuncio arriva qui con il suo testo completo, e puoi farti preparare dall'AI tutto il materiale per candidarti."), h("div", {class:"actions"}, addBtn));
+  if (!all.length) return h("div", {class:"center"}, mercatoCard(), says("ada", "Vale", "Qui tieni traccia delle tue candidature. Negli annunci tocca la stella o «Mi interessa»: l'annuncio arriva qui con il suo testo completo, e puoi farti preparare dall'AI tutto il materiale per candidarti."), h("div", {class:"actions"}, addBtn));
   const active = all.filter(([, f]) => f.state !== "discarded");
   const count = s => all.filter(([, f]) => f.state === s).length;
   const head = h("section", {class:"hero"}, h("div", {class:"eyebrow"}, "Le tue candidature, non scadono mai"),
     h("h1", null, h("em", null, String(active.length)), active.length === 1 ? " annuncio in corso" : " annunci in corso"),
     h("div", {class:"stats"}, ["applied", "replied", "interview", "offer"].map(s => h("div", {class:"stat"}, h("b", null, String(count(s))), h("span", null, STATE[s])))),
-    h("div", {style:"margin-top:14px"}, addBtn));
+    h("div", {style:"margin-top:14px"}, addBtn), mercatoCard());
   if (window.matchMedia("(min-width:900px)").matches){
     const board = h("div", {class:"board"}, COLS.concat(["discarded"]).map(s => {
       const items = all.filter(([, f]) => f.state === s);
@@ -481,7 +488,11 @@ function openApp(key, autoKit){
   const j = f.job || {};
   let noteT;
   const isUrl = /^https?:\/\//.test(j.url || "");
-  const jd = f.jd || j.excerpt || "";
+  if (f.jd === undefined && f.has_jd && !f._jdLoading){  // testo completo caricato solo adesso, quando serve
+    f._jdLoading = true;
+    api("testo", {key}).then(r => { if (r.ok){ f.jd = r.jd; if (sheetEl && sheetEl.dataset.k === key) openApp(key); } });
+  }
+  const jd = f.jd || j.excerpt || (f._jdLoading ? "Carico il testo dell'annuncio..." : "");
   const jdBox = h("div", {class:"jd" + (jd.length > 900 ? " fold" : "")}, jd ? jd : "Testo completo non disponibile: apri l'annuncio originale.");
   const body = [
     h("div", {class:"sec"}, h("h4", null, "Stato"), statusChips(key, j, f.state)),
@@ -1173,12 +1184,88 @@ function viewColloquio(id){
     body);
 }
 
+/* ---------- mercato nascosto: aziende che probabilmente assumono nei suoi ruoli senza averlo pubblicato ---------- */
+S.mprep = {running: false, step: "", error: ""};
+const MSTEPS = [["cerca", "Leggo le notizie delle tue città: finanziamenti, nuove sedi, espansioni"], ["analisi", "Scelgo le aziende adatte a te"],
+  ["verifica", "Cerco i loro siti carriere e le posizioni aperte"]];
+async function runMercato(){
+  const p = S.mprep = {running: true, step: "cerca", error: ""}; render();
+  for (const [step] of MSTEPS){
+    p.step = step; if (S.merc) render();
+    let r = await api("mercato_" + step, step === "verifica" ? {n: 4} : {});
+    if (r.ok && r.mercato) S.data.mercato = r.mercato;
+    while (r.ok && step === "verifica" && r.rimaste > 0){ r = await api("mercato_verifica", {n: 4}); if (r.ok && r.mercato){ S.data.mercato = r.mercato; if (S.merc && !sheetEl) render(); } }
+    if (!r.ok){ p.error = r.error; break; }
+  }
+  p.running = false; p.step = ""; if (S.merc && !sheetEl) render();
+}
+function mercatoCard(){
+  const m = S.data.mercato || {}, n = (m.aziende || []).length;
+  return h("button", {class:"mcard", type:"button", onclick: () => { S.merc = true; render(); window.scrollTo(0, 0); }},
+    h("b", null, "Mercato nascosto"),
+    h("span", null, n ? `${n} aziende che probabilmente assumono nel tuo ruolo senza averlo pubblicato` : "Scopri le aziende che probabilmente assumono nel tuo ruolo senza averlo pubblicato sui portali"));
+}
+function openMsg(i){
+  const a = (S.data.mercato.aziende || [])[i], k = a.msg;
+  if (!k) return;
+  openSheet(h("div", null, h("h2", null, "Candidatura spontanea"), h("div", {class:"co"}, a.nome + (a.contatto ? " · da mandare a: " + a.contatto : ""))),
+    h("div", null,
+      block("Email", (k.oggetto ? "Oggetto: " + k.oggetto + "\n\n" : "") + k.email,
+        h("a", {class:"btn", style:"margin-top:8px;width:100%", href: "mailto:?subject=" + encodeURIComponent(k.oggetto || "") + "&body=" + encodeURIComponent(sign(k.email))}, "Apri nella posta")),
+      k.linkedin ? block("Messaggio su LinkedIn", k.linkedin) : null,
+      h("p", {class:"hint"}, "Rileggi e aggiusta prima di inviare: le parti tra [ ] sono da completare. Allega il CV.")),
+    h("div", {class:"actions"}, h("button", {class:"btn", type:"button", onclick: e => writeMsg(i, e.currentTarget)}, "Riscrivi")));
+}
+async function writeMsg(i, btn){
+  if (btn){ btn.disabled = true; btn.textContent = "Vale sta scrivendo..."; }
+  const r = await api("mercato_messaggio", {i, cv: cvForAi()});
+  if (btn){ btn.disabled = false; btn.textContent = "Scrivi la candidatura spontanea"; }
+  if (!r.ok) return toast(r.error);
+  S.data.mercato = r.mercato; render(); openMsg(i);
+}
+function viewMercato(){
+  const m = S.data.mercato || {}, az = m.aziende || [], p = S.mprep;
+  const link = (u, t) => /^https?:\/\//.test(u || "") ? h("a", {href: u, target:"_blank", rel:"noopener noreferrer"}, t) : null;
+  const li = a => "https://www.linkedin.com/search/results/people/?keywords=" + encodeURIComponent((a.contatto || "") + " " + a.nome);
+  const prog = p.running || p.error ? h("div", {class:"prep"},
+    says("ada", "Vale", p.error || "Sto cercando: ci vuole un minuto o due. Puoi restare qui."),
+    h("ul", {class:"steps"}, MSTEPS.map(([s, label]) => { const i = MSTEPS.findIndex(x => x[0] === p.step), j = MSTEPS.findIndex(x => x[0] === s);
+      return h("li", {class: p.running && j < i ? "done" : p.step === s ? "on" : ""}, (p.running && j < i ? "✓ " : p.step === s ? "… " : "") + label); })),
+    !p.running ? h("div", {class:"actions"}, h("button", {class:"btn solid", type:"button", onclick: runMercato}, "Riprova")) : null) : null;
+  const cards = az.map((a, i) => h("div", {class:"kitb mz"},
+    h("div", {class:"kith"}, h("b", {style:"font-size:17px"}, a.nome), h("span", {class:"tag" + (a.priorita === "alta" ? " new" : "")}, a.priorita === "alta" ? "Priorità alta" : "Priorità media")),
+    h("div", {class:"co", style:"margin-top:2px;font-size:14px;color:var(--text2)"}, ["📍 " + a.citta, a.settore].filter(Boolean).join(" · ")),
+    h("p", {class:"kitt"}, h("b", null, "Segnale: "), a.segnale, a.notizia ? [" ", link(a.notizia.u, "(notizia)")] : null),
+    a.perche ? h("p", {class:"kitt"}, a.perche) : null,
+    h("div", {class:"facts", style:"margin-top:10px"},
+      h("div", {class:"fact"}, h("span", null, "Ruolo da proporre"), h("b", null, a.ruolo || "-")),
+      h("div", {class:"fact"}, h("span", null, "A chi scrivere"), h("b", null, a.contatto || "-"))),
+    a.come ? h("p", {class:"hint", style:"margin-top:8px"}, "Come: " + a.come) : null,
+    a.annunci && (a.annunci.tuoi || []).length ? h("div", {class:"note", style:"border-color:var(--radar)"}, h("b", null, "Sul loro sito carriere c'è già qualcosa per te:"),
+      h("ul", {class:"reasons", style:"margin-top:6px"}, a.annunci.tuoi.map(x => h("li", null, link(x.u, x.t) || x.t, x.luogo ? " · " + x.luogo : "")))) :
+      a.annunci ? h("p", {class:"hint", style:"margin-top:8px"}, `Sul loro sito carriere ci sono ${a.annunci.n} posizioni aperte, nessuna nel tuo ruolo: proponiti tu.`) : null,
+    h("div", {class:"wrap", style:"margin-top:10px"},
+      h("button", {class:"chip", type:"button", onclick: e => a.msg ? openMsg(i) : writeMsg(i, e.currentTarget)}, a.msg ? "La tua candidatura spontanea" : "Scrivi la candidatura spontanea"),
+      h("a", {class:"chip", href: li(a), target:"_blank", rel:"noopener noreferrer", style:"display:inline-flex;align-items:center;text-decoration:none"}, "Trova la persona su LinkedIn"),
+      a.carriere ? h("a", {class:"chip", href: a.carriere, target:"_blank", rel:"noopener noreferrer", style:"display:inline-flex;align-items:center;text-decoration:none"}, "Sito carriere") :
+        a.sito ? h("a", {class:"chip", href: a.sito, target:"_blank", rel:"noopener noreferrer", style:"display:inline-flex;align-items:center;text-decoration:none"}, "Sito (da verificare)") : null)));
+  return h("div", {class:"cwrap"},
+    h("button", {class:"linkbtn", type:"button", style:"padding:0", onclick: () => { S.merc = false; render(); }}, "← Candidature"),
+    h("section", {class:"chead"}, h("div", {class:"eyebrow"}, "Mercato nascosto"), h("h1", null, "Aziende da contattare")),
+    says("ada", "Vale", "Molte aziende assumono senza pubblicare annunci: hanno appena ricevuto un finanziamento, aprono una sede, crescono in fretta, oppure pubblicano solo sul loro sito. Qui trovi quelle delle tue città che fanno per te, con il motivo e a chi scrivere. I loro siti carriere li leggo a ogni ricerca: se esce un annuncio nel tuo ruolo lo trovi tra gli annunci."),
+    prog,
+    !az.length && !p.running ? h("div", {class:"actions"}, h("button", {class:"btn solid", type:"button", onclick: runMercato}, "Cerca le aziende")) : null,
+    az.length ? h("div", null, cards) : null,
+    az.length ? h("p", {class:"hint", style:"margin-top:14px"}, `Aggiornato il ${m.at || ""}. Solo aziende trovate nelle notizie e negli annunci delle tue città: niente nomi inventati. I siti sono trovati in automatico, controllali.`) : null,
+    az.length && !p.running ? h("button", {class:"linkbtn", type:"button", onclick: runMercato}, "Cerca di nuovo (nuove notizie)") : null);
+}
+
 /* ---------- attesa e aggiornamento ---------- */
 function radarSvg(){ return '<svg viewBox="0 0 200 200" aria-hidden="true"><circle class="ring" cx="100" cy="100" r="96"/><circle class="ring" cx="100" cy="100" r="64"/><circle class="ring" cx="100" cy="100" r="32"/><g class="sweep"><path d="M100 100L100 4A96 96 0 0 1 183 52z" fill="#36F2A0" opacity=".22"/></g><circle class="blip" cx="140" cy="70" r="4"/><circle class="blip" cx="62" cy="128" r="3.200" style="animation-delay:.7s"/><circle class="blip" cx="118" cy="150" r="3" style="animation-delay:1.3s"/><circle cx="100" cy="100" r="4" fill="#36F2A0"/></svg>'; }
-const EXPECT_MIN = 36;
+const EXPECT_MIN = 52;
 function viewWaiting(){
   const st = S.data.state || {};
-  if (!st.running) return h("div", {class:"center"}, says("ada", "Vale", st.error || "Non ci sono ancora annunci. Avvia la ricerca: ci vuole circa mezz'ora."), h("div", {class:"actions"}, h("button", {class:"btn solid", type:"button", onclick: refreshNow}, "Avvia la ricerca")));
+  if (!st.running) return h("div", {class:"center"}, says("ada", "Vale", st.error || "Non ci sono ancora annunci. Avvia la ricerca: ci vogliono circa 50 minuti."), h("div", {class:"actions"}, h("button", {class:"btn solid", type:"button", onclick: refreshNow}, "Avvia la ricerca")));
   const mins = Math.max(0, (Date.now() - new Date(st.started_at || Date.now())) / 60000), pct = Math.min(96, mins / EXPECT_MIN * 100);
   const left = Math.max(1, Math.round(EXPECT_MIN - mins));
   const step = (from, label) => h("li", {class: mins >= from + 4 ? "done" : mins >= from ? "on" : ""}, (mins >= from + 4 ? "✓ " : "") + label);
@@ -1197,7 +1284,7 @@ function startPoll(){
     if (document.hidden) return;
     const r = await api("stato"); if (!r.ok) return;
     if (r.state.running){ S.data.state = r.state; if (S.tab === "jobs" && !S.data.jobs.length && !sheetEl) render(); return; }
-    stopPoll(); const d = await api("dati"); if (d.ok){ S.data = d; if (!sheetEl) render(); toast(d.state.ok === false ? "La ricerca non è riuscita" : "Annunci aggiornati"); }
+    stopPoll(); const d = await api("dati"); if (d.ok){ S.data = d; idb.set("cache", {uid: String(S.token).split(".")[0], data: d}).catch(() => {}); if (!sheetEl) render(); toast(d.state.ok === false ? "La ricerca non è riuscita" : "Annunci aggiornati"); }
   }, 20000);
 }
 async function refreshNow(){
@@ -1205,7 +1292,7 @@ async function refreshNow(){
   const r = await api("aggiorna", {});
   if (!r.ok){ toast(r.error); return; }
   S.data.state = r.state || {running: true, started_at: new Date().toISOString()};
-  toast("Ricerca avviata: circa mezz'ora"); render(); startPoll();
+  toast("Ricerca avviata: circa 50 minuti"); render(); startPoll();
 }
 
 /* ---------- partenza ---------- */

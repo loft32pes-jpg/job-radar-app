@@ -151,23 +151,45 @@ def write_json(system: str, user: str, order, budget_s=50):
     finché uno risponde. order = [[nome fornitore, modello], ...] (da modelli.json). Ritorna (dati, modello)."""
     ai = _cfg().get("ai", {})
     provs = {(p.get("name") or "AI configurata"): p for p in [ai] + list(ai.get("extra") or []) if p.get("base_url") and p.get("api_key")}
-    t0, errors = time.time(), []
-    for name, model in list(order or []) + [[n, m] for n, p in provs.items() for m in models_of(p)]:
-        p = provs.get(name)
-        if not p or time.time() - t0 > budget_s:
-            continue
+    queue_ = [(n, m) for n, m in list(order or []) + [[n, m] for n, p in provs.items() for m in models_of(p)] if n in provs]
+    queue_ = list(dict.fromkeys(map(tuple, queue_)))
+
+    def call(name, model):
+        p = provs[name]
         url = p["base_url"].rstrip("/")
         url += "" if url.endswith("/chat/completions") else "/chat/completions"
-        try:
-            body = {"model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
-                    "response_format": {"type": "json_object"}, "temperature": 0.5}
-            req = Request(url, data=json.dumps(body).encode("utf-8"),
-                          headers={"Content-Type": "application/json", "User-Agent": "JobRadar/1.0", "Authorization": "Bearer " + p["api_key"]})
-            with urlopen(req, timeout=max(8, min(45, budget_s - (time.time() - t0)))) as r:
-                raw = json.load(r)["choices"][0]["message"]["content"]
-            return parse_json(raw), model
-        except Exception as e:
-            errors.append(f"{model}: {getattr(e, 'code', type(e).__name__)}")
+        body = {"model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+                "response_format": {"type": "json_object"}, "temperature": 0.5}
+        req = Request(url, data=json.dumps(body).encode("utf-8"),
+                      headers={"Content-Type": "application/json", "User-Agent": "JobRadar/1.0", "Authorization": "Bearer " + p["api_key"]})
+        with urlopen(req, timeout=40) as r:
+            return parse_json(json.load(r)["choices"][0]["message"]["content"])
+
+    # richieste "a staffetta": parte il modello migliore; se non risponde entro STEP secondi parte anche il successivo, e
+    # vince la prima risposta valida. Scadenza vera sul totale (su Vercel una richiesta dura al massimo 60 s): il tempo
+    # massimo di urlopen vale per ogni pacchetto, e un modello lento che risponde a rilento lo supera senza mai scattare
+    from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait as _wait
+    STEP = 12
+    t0, errors, running = time.time(), [], {}
+    ex = ThreadPoolExecutor(max_workers=6)
+    try:
+        while time.time() - t0 < budget_s:
+            if queue_ and (not running or time.time() - max(t for _f, (_m, t) in running.items()) >= STEP or
+                           all(f.done() for f in running)):
+                name, model = queue_.pop(0)
+                running[ex.submit(call, name, model)] = (model, time.time())
+            if not running:
+                break
+            done, _ = _wait(list(running), timeout=min(2, max(0.1, budget_s - (time.time() - t0))), return_when=FIRST_COMPLETED)
+            for f in done:
+                model, _t = running.pop(f)
+                try:
+                    return f.result(), model
+                except Exception as e:
+                    errors.append(f"{model}: {getattr(e, 'code', type(e).__name__)}")
+        errors += [f"{m}: tempo scaduto" for m, _t in running.values()]
+    finally:
+        ex.shutdown(wait=False, cancel_futures=True)
     raise AIError("Nessuna AI ha risposto (" + ", ".join(errors[-3:]) + "). Riprova tra un minuto.")
 
 

@@ -79,6 +79,8 @@ def main():
     (WORK / "data" / "archive").mkdir(parents=True)
     (WORK / "profilo").mkdir()
     write(WORK / "data" / "testi_letti.json", read(user / "testi.json", {}))  # testi già letti: LinkedIn non li rilegge
+    # siti carriere trovati per la persona (aziende delle sue città che pubblicano solo lì): si leggono a ogni ricerca
+    write(WORK / "data" / "board_personali.json", read(user / "board.json", []))
     for f in (REPO / "engine_data").glob("*.json"):
         shutil.copy(f, WORK / "data" / f.name)
     # se il profilo è cambiato dall'ultima ricerca, gli annunci in archivio erano stati scelti con quello vecchio: si riparte
@@ -133,9 +135,13 @@ def main():
     log = (WORK / "data" / "ultimo_log.txt").read_text(encoding="utf-8") if (WORK / "data" / "ultimo_log.txt").exists() else ""
     run = read(WORK / "data" / "ultima_ricerca.json", None)
     if code != 0 or not run:
+        detail = " | ".join(l for l in log.splitlines()[-40:] if "Traceback" in l or "Error" in l)[-600:]
+        before = read(user / "stato.json", {}) or {}
+        # quante ricerche di fila non sono arrivate in fondo: dalla seconda parte l'avviso a chi amministra (engine/allarme.py)
         write(user / "stato.json", {"running": False, "ok": False, "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                                    "error": "La ricerca non è arrivata in fondo. Riprova tra qualche minuto."})
-        print("Ricerca non riuscita: " + " | ".join(l for l in log.splitlines()[-40:] if "Traceback" in l or "Error" in l)[-600:])
+                                    "error": "La ricerca non è arrivata in fondo. Riprova tra qualche minuto.",
+                                    "fails": int(before.get("fails") or 0) + 1, "detail": detail[-300:]})
+        print("Ricerca non riuscita: " + detail)
         return 1
 
     # annunci dentro la finestra dell'ultima ricerca = quelli visti in questa ricerca
