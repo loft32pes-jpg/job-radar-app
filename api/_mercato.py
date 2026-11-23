@@ -36,6 +36,8 @@ ATS_RX = [  # (ats, regex sul codice della pagina, gruppo con lo slug)
     ("smartrecruiters", r"(?:careers|jobs)\.smartrecruiters\.com/([A-Za-z0-9_-]+)"),
     ("teamtailor", r"([A-Za-z0-9-]+)\.teamtailor\.com"),
 ]
+# SAP SuccessFactors (grandi aziende): il sito carriere ha "/go/...", "/job/.../<numero>/" o le risorse rmkcdn
+SF_RX = re.compile(r"rmkcdn\.successfactors\.com|jobs2web|/go/[^\"']+/\d{5,}/|career\d*\.successfactors\.(?:com|eu)", re.I)
 BAD_SLUG = {"embed", "js", "assets", "static", "api", "www", "careers", "jobs", "widget", "v1", "cdn", "app"}
 CAREERS = re.compile(r"career|carrier|jobs?\b|lavora|work-with-us|join|trabaja|empleo|werken|vacature|vacancies|opportunit|talent", re.I)
 
@@ -181,6 +183,15 @@ def careers(company, hint_domain=""):
     except Exception:
         pass
     blob = " ".join(pages) + " " + out["carriere"]
+    if out["carriere"]:  # pagina "lavora con noi" che porta a un sito SuccessFactors (jobs.azienda.com)
+        sf = [u for u in re.findall(r'href="(https?://(?:jobs|careers?|lavora|carriere)[\w.-]*\.[a-z]{2,}/?[^"]*)"', blob)]
+        for u in sf[:2]:
+            try:
+                if SF_RX.search(_get(u, 8)):
+                    out.update({"ats": "successfactors", "slug": urlparse(u).netloc})
+                    return out
+            except Exception:
+                continue
     for ats, rx in ATS_RX:
         for m in re.finditer(rx, blob):
             slug = m.group(1).strip(".")

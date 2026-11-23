@@ -69,6 +69,11 @@ def _near(result, places, km=40):
     for j in jobs:
         country = rules.infer_country(j.get("location") or "")
         hit = geo.locate("", country, j.get("location") or "") if country else None
+        if (not hit or hit[2] != "city") and j.get("hq"):  # località interna dell'azienda (es. "Gutieres"): vale la sua sede
+            p = next((p for p in places if p["name"] == j["hq"] or p.get("typed") == j["hq"]), None)
+            if p and country == p.get("country"):
+                j["near"] = p["name"]
+            continue
         if not hit or hit[2] != "city":
             continue
         for p in places:

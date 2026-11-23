@@ -240,7 +240,71 @@ def ats_teamtailor(slug):
         yield make(g("title"), slug, loc, g("link"), "Teamtailor", parse_dt(g("pubDate")), strip_html(g("description")))
 
 
-ATS = {"greenhouse": ats_greenhouse, "lever": ats_lever, "ashby": ats_ashby, "workable": ats_workable, "personio": ats_personio,
+def ats_successfactors(slug, max_pages=25, max_details=40):
+    """SAP SuccessFactors (Career Site Builder), usato dalle grandi aziende: Intesa Sanpaolo, Lavazza... Lo "slug" è
+    l'indirizzo del sito carriere (es. jobs.intesasanpaolo.com). L'elenco non ha date né testo: si apre la pagina solo
+    degli annunci con un titolo nei ruoli della persona (al massimo max_details), per data e testo."""
+    import rules
+    host = slug.replace("https://", "").replace("http://", "").strip("/")
+    rows, seen = [], set()
+    for page in range(max_pages):
+        html_ = _open(f"https://{host}/search/?q=&startrow={page * 25}", "text/html", timeout=20)
+        new = 0
+        for tr in re.findall(r'<tr class="data-row[^"]*"[^>]*>(.*?)</tr>', html_, re.S):
+            m = re.search(r'href="(/job/[^"]+)"[^>]*class="jobTitle-link"[^>]*>(.*?)</a>|class="jobTitle-link"[^>]*href="(/job/[^"]+)"[^>]*>(.*?)</a>', tr)
+            if not m:
+                continue
+            path, title = (m.group(1), m.group(2)) if m.group(1) else (m.group(3), m.group(4))
+            if path in seen:
+                continue
+            seen.add(path)
+            new += 1
+            loc = re.search(r'class="jobLocation"[^>]*>\s*([^<]+?)\s*<', tr)
+            rows.append((html.unescape(title).strip(), path, html.unescape(loc.group(1)) if loc else ""))
+        for path, tile in re.findall(r'<li class="job-tile[^"]*"[^>]*data-url="(/job/[^"]+)"(.*?)</li>', html_, re.S):
+            if path in seen:
+                continue
+            seen.add(path)
+            new += 1
+            t = re.search(r'class="jobTitle-link[^"]*"[^>]*>\s*(.*?)\s*</a>', tile, re.S)
+            cc = re.search(r'section-country-value">\s*([^<]+?)\s*<', tile)
+            place = path.split("/")[2].split("-")[0]  # /job/<sede>-<titolo>/<id>/
+            rows.append((html.unescape(t.group(1)).strip() if t else "", path, ", ".join(x for x in (place, cc.group(1) if cc else "") if x)))
+        if not new:
+            break
+    # filtro largo (come nelle città della persona): quello vero lo applica poi la ricerca, con il giudice
+    wanted = [r for r in rows if not rules.PROFILE or rules.classify(r[0], "x", "")][:max_details]
+
+    def detail(r):
+        title, path, loc = r
+        try:
+            d = _open(f"https://{host}{path}", "text/html", timeout=15)
+        except Exception:
+            return None
+        body = re.search(r'class="jobdescription"[^>]*>(.*?)</span>\s*</div>', d, re.S) or re.search(r'itemprop="description"[^>]*>(.*?)</span>', d, re.S)
+        when = re.search(r'datePosted"[^>]*content="([^"]+)"|itemprop="datePosted"[^>]*>([^<]+)<', d)
+        posted = None
+        if when:
+            raw = (when.group(1) or when.group(2) or "").strip()
+            posted = parse_dt(raw)
+            if not posted:
+                try:
+                    posted = datetime.strptime(raw, "%a %b %d %H:%M:%S UTC %Y").replace(tzinfo=timezone.utc)
+                except ValueError:
+                    posted = None
+        company = re.search(r'<meta property="og:site_name" content="([^"]+)"', d)
+        city = re.search(r'addressLocality[^>]*content="([^"]+)"', d)
+        if city and city.group(1).strip() and city.group(1).strip().lower() not in loc.lower():
+            loc = f"{city.group(1).strip()}, {loc}" if loc else city.group(1).strip()
+        return make(title, company.group(1) if company else host, loc, f"https://{host}{path}", "Sito carriere", posted,
+                    strip_html(body.group(1) if body else ""))
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        for j in ex.map(detail, wanted):
+            if j:
+                yield j
+
+
+ATS = {"successfactors": ats_successfactors, "greenhouse": ats_greenhouse, "lever": ats_lever, "ashby": ats_ashby, "workable": ats_workable, "personio": ats_personio,
        "smartrecruiters": ats_smartrecruiters, "recruitee": ats_recruitee, "teamtailor": ats_teamtailor}
 
 
@@ -255,6 +319,8 @@ def _company(entry):
         for j in jobs:
             if j["company"].lower() == entry["slug"].lower():
                 j["company"] = entry["name"]  # lo slug tecnico diventa il nome vero
+            if entry.get("citta"):
+                j["hq"] = entry["citta"]  # sede dell'azienda: vale quando la località dell'annuncio è un codice interno
             j["logo"] = favicon(entry.get("domain", ""))
         return jobs, None
     except HTTPError as e:
