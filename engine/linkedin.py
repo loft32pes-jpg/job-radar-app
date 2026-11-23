@@ -184,6 +184,11 @@ def fetch_linkedin(cfg, since, log=None, known_ids=(), on_read=None, local_since
             qs = groups
         for q in qs + ([native[lang]] if lang in native else []):
             active.append((name, q, set(), {}))
+    shard = os.environ.get("JR_LI_SHARD", "")
+    if re.fullmatch(r"\d+/\d+", shard):  # ricerca divisa tra più macchine in parallelo (ognuna con il suo indirizzo)
+        k, n = map(int, shard.split("/"))
+        if n > 1:
+            active = [a for i, a in enumerate(active) if i % n == k]
     start, cut = 0, False
     while active and start < 1000:  # LinkedIn non va oltre i 1000 risultati per ricerca
         if start and not can_search():  # la prima pagina si fa sempre per tutti

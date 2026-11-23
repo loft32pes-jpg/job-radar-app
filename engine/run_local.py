@@ -59,6 +59,30 @@ def title_ok(title: str) -> bool:
     return rules.classify(title) is not None
 
 
+def _import_readers(log):
+    """Letture LinkedIn delle altre macchine (JR_LI_PARTS): ci_run le scarica in data/lettori man mano che arrivano.
+    Si aspettano al massimo JR_LI_WAIT secondi dopo la fine della propria parte."""
+    import gzip
+    import json as _json
+    import time as _time
+    parts = int(os.environ.get("JR_LI_PARTS") or 1)
+    if parts <= 1:
+        return []
+    folder = DATA / "lettori"
+    until = _time.time() + float(os.environ.get("JR_LI_WAIT") or 300)
+    while _time.time() < until and len(list(folder.glob("*.json.gz"))) < parts - 1:
+        _time.sleep(5)
+    out = []
+    for f in sorted(folder.glob("*.json.gz")):
+        try:
+            with gzip.open(f, "rt", encoding="utf-8") as fh:
+                out += _json.load(fh).get("jobs") or []
+        except Exception:
+            continue
+    log(f"  LinkedIn: {len(out)} annunci dalle altre {len(list(folder.glob('*.json.gz')))} macchine su {parts - 1}")
+    return out
+
+
 def _near(result, places, km=40):
     """Annunci dei siti carriere: quelli nelle città della persona valgono come "vicino casa" (finestra di una settimana)."""
     jobs, meta = result
@@ -165,8 +189,11 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
             return False  # es. "Solutions Architect - Sydney" con località generica "Remote"
         return True
 
+    only_li = os.environ.get("JR_LI_ONLY")  # macchina "lettore": legge solo la sua parte di LinkedIn, niente giudice
+    if only_li:
+        steps = []
     # Il giudice AI lavora mentre la ricerca è ancora in corso: ogni annuncio che supera le regole gli arriva subito
-    live = judge.Live(rules.PROFILE if rules.JUDGE_ON else None)
+    live = judge.Live(rules.PROFILE if rules.JUDGE_ON and not only_li else None)
     sig_key = {}
 
     def prejudge(j):
@@ -210,6 +237,24 @@ def run(hours: int = 24, log=print, do_notify: bool = False):
     except Exception as e:
         jobs, meta = [], {"name": "LinkedIn", "ok": False, "reason": str(e)[:100]}
     li_pool.shutdown(wait=False)
+    if only_li:
+        import gzip
+        import json as _json
+        with gzip.open(only_li, "wt", encoding="utf-8") as f:
+            _json.dump({"run": os.environ.get("GITHUB_RUN_ID", ""), "jobs": jobs, "meta": meta}, f, ensure_ascii=False)
+        log(f"Lettore: {len(jobs)} annunci LinkedIn salvati")
+        sys.exit(0)
+    extra = _import_readers(log)  # quello che hanno letto le altre macchine in parallelo
+    if extra:
+        mine = {j["url"] for j in jobs}
+        for j in extra:
+            if j["url"] not in mine:
+                mine.add(j["url"])
+                jobs.append(j)
+                try:
+                    prejudge(j)
+                except Exception:
+                    pass
     metas.append(meta)
     raw += jobs
     log(f"  LinkedIn: {len(jobs)} annunci grezzi" + ("" if meta["ok"] else f" (non raggiunta: {meta['reason']})"))

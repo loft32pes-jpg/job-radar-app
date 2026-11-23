@@ -66,8 +66,56 @@ def notify(prof, new):
         print("Avviso sul telefono non inviato")
 
 
+def _git(*args, cwd=None, data=None):
+    return subprocess.run(["git", *args], cwd=cwd, input=data, capture_output=True)
+
+
+def deliver(uid, part, path):
+    """Lettore: consegna la sua lettura alla macchina principale su un ramo privato del repo dei dati
+    (lettori-<persona>-<parte>, riscritto a ogni ricerca). Niente nei file pubblici della ricerca."""
+    import tempfile
+    dati = REPO / "dati"
+    url = _git("remote", "get-url", "origin", cwd=dati).stdout.decode().strip()
+    header = _git("config", "--get", "http.https://github.com/.extraheader", cwd=dati).stdout.decode().strip()
+    with tempfile.TemporaryDirectory() as tmp:
+        shutil.copy(path, Path(tmp) / "lettura.json.gz")
+        _git("init", "-q", cwd=tmp)
+        if header:
+            _git("config", "http.https://github.com/.extraheader", header, cwd=tmp)
+        _git("-c", "user.name=job-radar-bot", "-c", "user.email=job-radar-bot@users.noreply.github.com", "add", "-A", cwd=tmp)
+        _git("-c", "user.name=job-radar-bot", "-c", "user.email=job-radar-bot@users.noreply.github.com", "commit", "-q", "-m",
+             "Lettura LinkedIn", cwd=tmp)
+        for _ in range(3):
+            if _git("push", "-q", "-f", url, f"HEAD:refs/heads/lettori-{uid}-{part}", cwd=tmp).returncode == 0:
+                return True
+            time.sleep(3)
+    return False
+
+
+def collect(uid, parts, folder, stop):
+    """Macchina principale: scarica le letture delle altre macchine appena sono pronte (stessa esecuzione)."""
+    import gzip
+    folder.mkdir(parents=True, exist_ok=True)
+    dati, run_id, done = REPO / "dati", os.environ.get("GITHUB_RUN_ID", ""), set()
+    while not stop.is_set() and len(done) < parts - 1:
+        for k in range(1, parts):
+            if k in done:
+                continue
+            if _git("fetch", "-q", "origin", f"+refs/heads/lettori-{uid}-{k}:refs/lettori/{k}", cwd=dati).returncode != 0:
+                continue
+            blob = _git("show", f"refs/lettori/{k}:lettura.json.gz", cwd=dati).stdout
+            try:
+                if json.loads(gzip.decompress(blob).decode("utf-8")).get("run") == run_id:
+                    (folder / f"{k}.json.gz").write_bytes(blob)
+                    done.add(k)
+            except Exception:
+                continue
+        stop.wait(15)
+
+
 def main():
     uid = sys.argv[1]
+    lettore = sys.argv[sys.argv.index("--lettore") + 1] if "--lettore" in sys.argv else ""
     user = REPO / "dati" / "utenti" / uid
     profile = user / "profilo.json"
     if not profile.exists():
@@ -129,9 +177,26 @@ def main():
     t0 = time.time()
     # il motore legge la configurazione da JR_CONFIG (non dal file): deve ricevere quella con le modifiche qui sopra
     env = dict(os.environ, PYTHONUTF8="1", PYTHONIOENCODING="utf-8", JR_CONFIG=json.dumps(cfg, ensure_ascii=False))
+    parts = int(os.environ.get("JR_LI_PARTS") or 1)
+    if lettore:  # macchina "lettore": solo la sua parte di LinkedIn, poi consegna e basta (non salva risultati)
+        out = WORK / "data" / "lettura.json.gz"
+        env.update(JR_LI_ONLY=str(out), JR_LI_SHARD=lettore)
+        subprocess.run([sys.executable, str(WORK / "scripts" / "run_local.py"), "--no-open"], cwd=WORK, env=env,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        ok = out.exists() and deliver(uid, lettore.split("/")[0], out)
+        print(f"Lettore {lettore}: " + (f"consegnato in {round((time.time() - t0) / 60)} minuti" if ok else "non riuscito"))
+        return 0 if ok else 1
+    stop = None
+    if parts > 1:  # la macchina principale fa la parte 0 e raccoglie le altre
+        import threading
+        env.update(JR_LI_SHARD=f"0/{parts}")
+        stop = threading.Event()
+        threading.Thread(target=collect, args=(uid, parts, WORK / "data" / "lettori", stop), daemon=True).start()
     # l'uscita del motore (titoli, ruoli cercati) non va nel registro dell'esecuzione, che nel repo pubblico è visibile a tutti
     code = subprocess.run([sys.executable, str(WORK / "scripts" / "run_local.py"), "--no-open"], cwd=WORK, env=env,
                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True).returncode
+    if stop:
+        stop.set()
     log = (WORK / "data" / "ultimo_log.txt").read_text(encoding="utf-8") if (WORK / "data" / "ultimo_log.txt").exists() else ""
     run = read(WORK / "data" / "ultima_ricerca.json", None)
     if code != 0 or not run:

@@ -277,7 +277,7 @@ async function saveCities(list, btn, search){
   if (btn) btn.disabled = false;
   if (!r.ok){ toast(r.error); return false; }
   const a = S.data.profile.answers; a.places = r.places; a.cities = r.places.map(p => p.typed);
-  if (r.started){ S.data.state = {running: true, started_at: new Date().toISOString()}; startPoll(); toast("Ricerca avviata: tra circa 50 minuti trovi i nuovi annunci"); }
+  if (r.started){ S.data.state = {running: true, started_at: new Date().toISOString()}; startPoll(); toast("Ricerca avviata: tra circa 20 minuti trovi i nuovi annunci"); }
   else toast(search ? "Salvato: la cerco alla prossima ricerca (l'ultima è di poco fa)" : "Salvato: vale dalla prossima ricerca");
   render(); return true;
 }
@@ -1262,10 +1262,10 @@ function viewMercato(){
 
 /* ---------- attesa e aggiornamento ---------- */
 function radarSvg(){ return '<svg viewBox="0 0 200 200" aria-hidden="true"><circle class="ring" cx="100" cy="100" r="96"/><circle class="ring" cx="100" cy="100" r="64"/><circle class="ring" cx="100" cy="100" r="32"/><g class="sweep"><path d="M100 100L100 4A96 96 0 0 1 183 52z" fill="#36F2A0" opacity=".22"/></g><circle class="blip" cx="140" cy="70" r="4"/><circle class="blip" cx="62" cy="128" r="3.200" style="animation-delay:.7s"/><circle class="blip" cx="118" cy="150" r="3" style="animation-delay:1.3s"/><circle cx="100" cy="100" r="4" fill="#36F2A0"/></svg>'; }
-const EXPECT_MIN = 52;
+const EXPECT_MIN = 20;
 function viewWaiting(){
   const st = S.data.state || {};
-  if (!st.running) return h("div", {class:"center"}, says("ada", "Vale", st.error || "Non ci sono ancora annunci. Avvia la ricerca: ci vogliono circa 50 minuti."), h("div", {class:"actions"}, h("button", {class:"btn solid", type:"button", onclick: refreshNow}, "Avvia la ricerca")));
+  if (!st.running) return h("div", {class:"center"}, says("ada", "Vale", st.error || "Non ci sono ancora annunci. Avvia la ricerca: ci vogliono circa 20 minuti."), h("div", {class:"actions"}, h("button", {class:"btn solid", type:"button", onclick: refreshNow}, "Avvia la ricerca")));
   const mins = Math.max(0, (Date.now() - new Date(st.started_at || Date.now())) / 60000), pct = Math.min(96, mins / EXPECT_MIN * 100);
   const left = Math.max(1, Math.round(EXPECT_MIN - mins));
   const step = (from, label) => h("li", {class: mins >= from + 4 ? "done" : mins >= from ? "on" : ""}, (mins >= from + 4 ? "✓ " : "") + label);
@@ -1292,7 +1292,7 @@ async function refreshNow(){
   const r = await api("aggiorna", {});
   if (!r.ok){ toast(r.error); return; }
   S.data.state = r.state || {running: true, started_at: new Date().toISOString()};
-  toast("Ricerca avviata: circa 50 minuti"); render(); startPoll();
+  toast("Ricerca avviata: circa 20 minuti"); render(); startPoll();
 }
 
 /* ---------- partenza ---------- */
