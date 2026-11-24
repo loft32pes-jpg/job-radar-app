@@ -40,17 +40,6 @@ jobs:
           token: ${{ secrets.JR_GH_TOKEN }}
           ref: dati
           path: dati
-      - name: Sceglie i modelli AI migliori di oggi
-        continue-on-error: true
-        env:
-          JR_CONFIG: ${{ secrets.JR_CONFIG }}
-        run: |
-          python3 engine/modelli.py dati/modelli.json > /dev/null
-          cd dati
-          git config user.name "job-radar-bot"
-          git config user.email "job-radar-bot@users.noreply.github.com"
-          git add modelli.json && git commit -q -m "Modelli AI di oggi" || true
-          for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break || sleep 4; done
       - id: e
         env:
           SOLO: ${{ github.event.inputs.utente }}
@@ -83,8 +72,33 @@ jobs:
           print("utenti=" + json.dumps(sorted(ids)))
           EOF
 
-  # LinkedIn rallenta chi fa troppe richieste dallo stesso indirizzo: la lettura si divide tra 4 macchine in parallelo
-  # (questa ne fa 3, la ricerca principale la quarta). Ognuna consegna la sua parte su un ramo privato del repo dei dati.
+  # prova i modelli AI gratuiti (un paio di minuti) in parallelo alla ricerca: la ricerca usa la scelta del giro prima
+  modelli:
+    if: github.repository == 'loft32pes-jpg/job-radar-app'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.DATA_REPO }}
+          token: ${{ secrets.JR_GH_TOKEN }}
+          ref: dati
+          path: dati
+      - name: Sceglie i modelli AI migliori di oggi
+        continue-on-error: true
+        env:
+          JR_CONFIG: ${{ secrets.JR_CONFIG }}
+        run: |
+          python3 engine/modelli.py dati/modelli.json > /dev/null
+          cd dati
+          git config user.name "job-radar-bot"
+          git config user.email "job-radar-bot@users.noreply.github.com"
+          git add modelli.json && git commit -q -m "Modelli AI di oggi" || true
+          for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break || sleep 4; done
+
+  # LinkedIn rallenta chi fa troppe richieste dallo stesso indirizzo: la lettura si divide tra 5 macchine in parallelo
+  # (questa ne fa 4, la ricerca principale la quinta). Ognuna consegna la sua parte su un ramo privato del repo dei dati.
   lettori:
     needs: elenco
     if: needs.elenco.outputs.utenti != '[]'
@@ -94,7 +108,7 @@ jobs:
       fail-fast: false
       matrix:
         utente: ${{ fromJson(needs.elenco.outputs.utenti) }}
-        parte: [1, 2, 3]
+        parte: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -109,9 +123,9 @@ jobs:
       - name: Legge la sua parte di LinkedIn
         env:
           JR_CONFIG: ${{ secrets.JR_CONFIG }}
-          JR_LI_MINUTES: "13"
+          JR_LI_MINUTES: "10"
           JR_LI_SHARE: "0.5"
-        run: python engine/ci_run.py "${{ matrix.utente }}" --lettore "${{ matrix.parte }}/4"
+        run: python engine/ci_run.py "${{ matrix.utente }}" --lettore "${{ matrix.parte }}/5"
 
   ricerca:
     needs: elenco
@@ -164,9 +178,9 @@ jobs:
         if: steps.segna.outputs.salta != '1'
         env:
           JR_CONFIG: ${{ secrets.JR_CONFIG }}
-          JR_LI_MINUTES: "13"
+          JR_LI_MINUTES: "10"
           JR_LI_SHARE: "0.5"
-          JR_LI_PARTS: "4"
+          JR_LI_PARTS: "5"
           JR_LI_WAIT: "300"
         run: python engine/ci_run.py "${{ matrix.utente }}"
       - name: Salva i risultati
